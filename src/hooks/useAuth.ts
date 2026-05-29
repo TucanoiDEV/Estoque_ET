@@ -1,0 +1,69 @@
+import { useState, useEffect, createContext, useContext } from 'react'
+import { supabase, db } from '../services/supabase'
+import type { Usuario, AuthContextType } from '../types'
+
+export const AuthContext = createContext<AuthContextType>({
+  usuario: null,
+  loading: true,
+  login: async () => {},
+  logout: async () => {},
+})
+
+export function useAuth(): AuthContextType {
+  return useContext(AuthContext)
+}
+
+export function useAuthProvider(): AuthContextType {
+  const [usuario, setUsuario] = useState<Usuario | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Busca o perfil completo do usuário (cargo etc.) na tabela usuarios
+  async function buscarPerfil(userId: string): Promise<void> {
+    const { data, error } = await db
+      .usuarios()
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (!error && data) {
+      setUsuario(data as Usuario)
+    } else {
+      setUsuario(null)
+    }
+  }
+
+  useEffect(() => {
+    // Verifica sessão existente ao montar
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        buscarPerfil(session.user.id).finally(() => setLoading(false))
+      } else {
+        setLoading(false)
+      }
+    })
+
+    // Escuta mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        buscarPerfil(session.user.id).finally(() => setLoading(false))
+      } else {
+        setUsuario(null)
+        setLoading(false)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function login(email: string, senha: string): Promise<void> {
+    const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
+    if (error) throw new Error(error.message)
+  }
+
+  async function logout(): Promise<void> {
+    await supabase.auth.signOut()
+    setUsuario(null)
+  }
+
+  return { usuario, loading, login, logout }
+}
