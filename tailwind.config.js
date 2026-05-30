@@ -5,7 +5,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Paleta EstoqueSync — baseada nas imagens de referência
+        // Paleta Armazém Machado — baseada nas imagens de referência
         dark: {
           bg: '#0d1117',
           card: '#161b22',

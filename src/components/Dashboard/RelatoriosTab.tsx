@@ -70,7 +70,7 @@ export function RelatoriosTab({ produtos, entradas, loading }: Props) {
       // Cabeçalho
       doc.setFontSize(18)
       doc.setTextColor(59, 130, 246)
-      doc.text('EstoqueSync', 14, 16)
+      doc.text('Armazém Machado', 14, 16)
       doc.setFontSize(12)
       doc.setTextColor(100, 100, 100)
 

@@ -27,7 +27,7 @@ export function Header({ temaEscuro, onToggleTema, sincronizando, onNovaEntrada 
         <div className="w-8 h-8 bg-brand-blue rounded-lg flex items-center justify-center shadow-lg shadow-brand-blue/30">
           <IconPackage size={18} className="text-white" />
         </div>
-        <span className="font-bold text-white text-lg tracking-tight">EstoqueSync</span>
+        <span className="font-bold text-white text-lg tracking-tight">Armazém Machado</span>
       </div>
 
       {/* Indicador de sync */}

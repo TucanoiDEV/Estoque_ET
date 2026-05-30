@@ -38,7 +38,7 @@ export function Sidebar({ abaAtiva, onMudarAba }: Props) {
       </nav>
 
       <div className="mt-auto px-4 pb-2">
-        <div className="text-xs text-gray-600 text-center">EstoqueSync v1.0</div>
+        <div className="text-xs text-gray-600 text-center">Armazém Machado v1.0</div>
       </div>
     </aside>
   )

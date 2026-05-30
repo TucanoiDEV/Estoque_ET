@@ -1,5 +1,5 @@
 -- ============================================================
--- EstoqueSync — Dados de exemplo (seed)
+-- Armazém Machado — Dados de exemplo (seed)
 -- Execute APÓS o schema.sql
 -- ATENÇÃO: Substitua os UUIDs pelos IDs reais dos usuários
 --          criados no Supabase Authentication antes de executar.
@@ -58,15 +58,15 @@ ON CONFLICT (chave) DO NOTHING;
 --
 -- 1. No painel do Supabase, vá em Authentication > Users
 -- 2. Crie 3 usuários:
---    - admin@estoquesync.demo   / Senha: Admin@123
---    - operador@estoquesync.demo / Senha: Oper@123
---    - viewer@estoquesync.demo  / Senha: View@123
+--    - admin@armazemmachado.demo   / Senha: Admin@123
+--    - operador@armazemmachado.demo / Senha: Oper@123
+--    - viewer@armazemmachado.demo  / Senha: View@123
 --
 -- 3. Copie os UUIDs gerados e execute:
 --
 -- INSERT INTO public.usuarios (id, nome, email, cargo) VALUES
---   ('<UUID_DO_ADMIN>',     'Administrador', 'admin@estoquesync.demo',    'admin'),
---   ('<UUID_DO_OPERADOR>',  'Operador',      'operador@estoquesync.demo', 'operador'),
---   ('<UUID_DO_VIEWER>',    'Visualizador',  'viewer@estoquesync.demo',   'visualizador');
+--   ('<UUID_DO_ADMIN>',     'Administrador', 'admin@armazemmachado.demo',    'admin'),
+--   ('<UUID_DO_OPERADOR>',  'Operador',      'operador@armazemmachado.demo', 'operador'),
+--   ('<UUID_DO_VIEWER>',    'Visualizador',  'viewer@armazemmachado.demo',   'visualizador');
 --
 -- ─────────────────────────────────────────────────────────────────────────────

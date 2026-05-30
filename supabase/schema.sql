@@ -1,5 +1,5 @@
 -- ============================================================
--- EstoqueSync — Schema do banco de dados Supabase
+-- Armazém Machado — Schema do banco de dados Supabase
 -- Execute este arquivo no SQL Editor do seu projeto Supabase
 -- ============================================================
 

@@ -6,8 +6,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart as HBarChart,
-  Cell,
 } from 'recharts'
 import type { DadoGrafico, DadoProdutoMovimentado } from '../../types'
 

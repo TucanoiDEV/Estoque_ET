@@ -1,4 +1,4 @@
-// Tipos globais do EstoqueSync
+// Tipos globais do Armazém Machado
 
 export type Cargo = 'admin' | 'operador' | 'visualizador'
 

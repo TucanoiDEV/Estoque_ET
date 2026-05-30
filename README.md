@@ -1,4 +1,4 @@
-# EstoqueSync
+# Armazém Machado
 
 Sistema de gerenciamento de estoque em tempo real — React + TypeScript + Supabase + Vercel.
 
@@ -29,17 +29,17 @@ No painel Supabase, vá em **Authentication > Users** e crie:
 
 | Email                        | Senha      | Cargo        |
 | ---------------------------- | ---------- | ------------ |
-| admin@estoquesync.demo       | Admin@123  | admin        |
-| operador@estoquesync.demo    | Oper@123   | operador     |
-| viewer@estoquesync.demo      | View@123   | visualizador |
+| admin@armazemmachado.demo       | Admin@123  | admin        |
+| operador@armazemmachado.demo    | Oper@123   | operador     |
+| viewer@armazemmachado.demo      | View@123   | visualizador |
 
 Após criar, copie os UUIDs gerados e execute no SQL Editor:
 
 ```sql
 INSERT INTO public.usuarios (id, nome, email, cargo) VALUES
-  ('<UUID_ADMIN>',     'Administrador', 'admin@estoquesync.demo',    'admin'),
-  ('<UUID_OPERADOR>',  'Operador',      'operador@estoquesync.demo', 'operador'),
-  ('<UUID_VIEWER>',    'Visualizador',  'viewer@estoquesync.demo',   'visualizador');
+  ('<UUID_ADMIN>',     'Administrador', 'admin@armazemmachado.demo',    'admin'),
+  ('<UUID_OPERADOR>',  'Operador',      'operador@armazemmachado.demo', 'operador'),
+  ('<UUID_VIEWER>',    'Visualizador',  'viewer@armazemmachado.demo',   'visualizador');
 ```
 
 ---
@@ -95,7 +95,7 @@ O arquivo `vercel.json` já está configurado para o roteamento SPA.
 ## 6. Primeiro acesso
 
 1. Acesse o domínio da Vercel (ou `localhost:5173`)
-2. Faça login com `admin@estoquesync.demo` / `Admin@123`
+2. Faça login com `admin@armazemmachado.demo` / `Admin@123`
 3. Na aba **Configurações > Empresa**, configure o nome da sua empresa
 4. Para usar o Assistente IA, acesse **Configurações > Assistente IA** e informe sua API Key da Anthropic
 
