@@ -6,10 +6,10 @@
 -- ─── Tabelas ─────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS public.usuarios (
-  id        UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
-  nome      TEXT        NOT NULL,
-  email     TEXT        NOT NULL,
-  cargo     TEXT        NOT NULL CHECK (cargo IN ('admin', 'operador', 'visualizador')),
+  id         UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  nome       TEXT        NOT NULL,
+  email      TEXT        NOT NULL,
+  cargo      TEXT        NOT NULL CHECK (cargo IN ('admin', 'operador', 'visualizador')),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -73,116 +73,143 @@ ALTER TABLE public.fornecedores  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.entradas      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.configuracoes ENABLE ROW LEVEL SECURITY;
 
+-- ─── Função auxiliar para evitar recursão no RLS ──────────────────────────────
+-- Usa SECURITY DEFINER para acessar a tabela sem disparar as policies
+
+CREATE OR REPLACE FUNCTION public.get_meu_cargo()
+RETURNS TEXT
+LANGUAGE SQL
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT cargo FROM public.usuarios WHERE id = auth.uid();
+$$;
+
 -- ─── Policies: usuarios ───────────────────────────────────────────────────────
 
-CREATE POLICY "Usuários autenticados leem todos os usuários"
+-- Qualquer usuário autenticado pode ler a lista de usuários
+CREATE POLICY "usuarios_select"
   ON public.usuarios FOR SELECT
-  USING (auth.role() = 'authenticated');
+  TO authenticated
+  USING (true);
 
-CREATE POLICY "Somente admin gerencia usuários"
-  ON public.usuarios FOR ALL
-  USING (
-    EXISTS (SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND cargo = 'admin')
-  );
+-- Somente admin pode inserir/atualizar/excluir usuários
+CREATE POLICY "usuarios_insert_admin"
+  ON public.usuarios FOR INSERT
+  TO authenticated
+  WITH CHECK (public.get_meu_cargo() = 'admin');
+
+CREATE POLICY "usuarios_update_admin"
+  ON public.usuarios FOR UPDATE
+  TO authenticated
+  USING (public.get_meu_cargo() = 'admin');
+
+CREATE POLICY "usuarios_delete_admin"
+  ON public.usuarios FOR DELETE
+  TO authenticated
+  USING (public.get_meu_cargo() = 'admin');
 
 -- ─── Policies: produtos ───────────────────────────────────────────────────────
 
-CREATE POLICY "Todos leem produtos"
+CREATE POLICY "produtos_select"
   ON public.produtos FOR SELECT
-  USING (auth.role() = 'authenticated');
+  TO authenticated
+  USING (true);
 
-CREATE POLICY "Admin e operador inserem produtos"
+CREATE POLICY "produtos_insert"
   ON public.produtos FOR INSERT
-  WITH CHECK (
-    EXISTS (SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND cargo IN ('admin', 'operador'))
-  );
+  TO authenticated
+  WITH CHECK (public.get_meu_cargo() IN ('admin', 'operador'));
 
-CREATE POLICY "Admin e operador editam produtos"
+CREATE POLICY "produtos_update"
   ON public.produtos FOR UPDATE
-  USING (
-    EXISTS (SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND cargo IN ('admin', 'operador'))
-  );
+  TO authenticated
+  USING (public.get_meu_cargo() IN ('admin', 'operador'));
 
-CREATE POLICY "Somente admin exclui produtos"
+CREATE POLICY "produtos_delete"
   ON public.produtos FOR DELETE
-  USING (
-    EXISTS (SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND cargo = 'admin')
-  );
+  TO authenticated
+  USING (public.get_meu_cargo() = 'admin');
 
 -- ─── Policies: estoque ────────────────────────────────────────────────────────
 
-CREATE POLICY "Todos leem estoque"
+CREATE POLICY "estoque_select"
   ON public.estoque FOR SELECT
-  USING (auth.role() = 'authenticated');
+  TO authenticated
+  USING (true);
 
-CREATE POLICY "Admin e operador modificam estoque"
-  ON public.estoque FOR ALL
-  USING (
-    EXISTS (SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND cargo IN ('admin', 'operador'))
-  );
+CREATE POLICY "estoque_insert"
+  ON public.estoque FOR INSERT
+  TO authenticated
+  WITH CHECK (public.get_meu_cargo() IN ('admin', 'operador'));
+
+CREATE POLICY "estoque_update"
+  ON public.estoque FOR UPDATE
+  TO authenticated
+  USING (public.get_meu_cargo() IN ('admin', 'operador'));
+
+CREATE POLICY "estoque_delete"
+  ON public.estoque FOR DELETE
+  TO authenticated
+  USING (public.get_meu_cargo() = 'admin');
 
 -- ─── Policies: fornecedores ───────────────────────────────────────────────────
 
-CREATE POLICY "Todos leem fornecedores"
+CREATE POLICY "fornecedores_select"
   ON public.fornecedores FOR SELECT
-  USING (auth.role() = 'authenticated');
+  TO authenticated
+  USING (true);
 
-CREATE POLICY "Admin e operador gerenciam fornecedores"
+CREATE POLICY "fornecedores_insert"
   ON public.fornecedores FOR INSERT
-  WITH CHECK (
-    EXISTS (SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND cargo IN ('admin', 'operador'))
-  );
+  TO authenticated
+  WITH CHECK (public.get_meu_cargo() IN ('admin', 'operador'));
 
-CREATE POLICY "Somente admin edita e exclui fornecedores"
+CREATE POLICY "fornecedores_update"
   ON public.fornecedores FOR UPDATE
-  USING (
-    EXISTS (SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND cargo = 'admin')
-  );
+  TO authenticated
+  USING (public.get_meu_cargo() = 'admin');
 
-CREATE POLICY "Somente admin exclui fornecedores"
+CREATE POLICY "fornecedores_delete"
   ON public.fornecedores FOR DELETE
-  USING (
-    EXISTS (SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND cargo = 'admin')
-  );
+  TO authenticated
+  USING (public.get_meu_cargo() = 'admin');
 
 -- ─── Policies: entradas ───────────────────────────────────────────────────────
 
-CREATE POLICY "Todos leem entradas"
+CREATE POLICY "entradas_select"
   ON public.entradas FOR SELECT
-  USING (auth.role() = 'authenticated');
+  TO authenticated
+  USING (true);
 
-CREATE POLICY "Admin e operador inserem entradas"
+CREATE POLICY "entradas_insert"
   ON public.entradas FOR INSERT
-  WITH CHECK (
-    EXISTS (SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND cargo IN ('admin', 'operador'))
-  );
+  TO authenticated
+  WITH CHECK (public.get_meu_cargo() IN ('admin', 'operador'));
 
-CREATE POLICY "Somente admin edita e exclui entradas"
+CREATE POLICY "entradas_update"
   ON public.entradas FOR UPDATE
-  USING (
-    EXISTS (SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND cargo = 'admin')
-  );
+  TO authenticated
+  USING (public.get_meu_cargo() = 'admin');
 
-CREATE POLICY "Somente admin exclui entradas"
+CREATE POLICY "entradas_delete"
   ON public.entradas FOR DELETE
-  USING (
-    EXISTS (SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND cargo = 'admin')
-  );
+  TO authenticated
+  USING (public.get_meu_cargo() = 'admin');
 
 -- ─── Policies: configuracoes ──────────────────────────────────────────────────
 
-CREATE POLICY "Todos leem configurações"
+CREATE POLICY "configuracoes_select"
   ON public.configuracoes FOR SELECT
-  USING (auth.role() = 'authenticated');
+  TO authenticated
+  USING (true);
 
-CREATE POLICY "Somente admin altera configurações"
+CREATE POLICY "configuracoes_all_admin"
   ON public.configuracoes FOR ALL
-  USING (
-    EXISTS (SELECT 1 FROM public.usuarios WHERE id = auth.uid() AND cargo = 'admin')
-  );
+  TO authenticated
+  USING (public.get_meu_cargo() = 'admin');
 
 -- ─── Realtime ─────────────────────────────────────────────────────────────────
--- Habilita publicação nas tabelas para o Supabase Realtime
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.estoque;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.entradas;

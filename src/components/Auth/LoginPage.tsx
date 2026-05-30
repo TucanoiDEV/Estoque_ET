@@ -1,5 +1,4 @@
 import { useState, FormEvent } from 'react'
-import { IconPackage, IconMail, IconLock, IconLoader2 } from '@tabler/icons-react'
 import { useAuth } from '../../hooks/useAuth'
 
 export function LoginPage() {
@@ -13,102 +12,147 @@ export function LoginPage() {
     e.preventDefault()
     setErro(null)
     setCarregando(true)
-
     try {
       await login(email, senha)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erro desconhecido'
-      if (msg.includes('Invalid login credentials')) {
-        setErro('Email ou senha incorretos.')
-      } else if (msg.includes('Email not confirmed')) {
-        setErro('Confirme seu email antes de fazer login.')
-      } else {
-        setErro('Falha ao conectar. Tente novamente.')
-      }
+      const msg = err instanceof Error ? err.message : ''
+      if (msg.includes('Invalid login credentials')) setErro('Email ou senha incorretos.')
+      else if (msg.includes('Email not confirmed')) setErro('Confirme seu email antes de fazer login.')
+      else setErro('Falha ao conectar. Tente novamente.')
     } finally {
       setCarregando(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-dark-bg flex items-center justify-center p-4">
-      {/* Decoração de fundo */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-brand-blue/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-brand-purple/10 rounded-full blur-3xl" />
-      </div>
-
-      <div className="relative w-full max-w-md">
+    <div style={{
+      minHeight: '100vh',
+      background: '#0d1117',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
+      fontFamily: 'Inter, system-ui, sans-serif',
+    }}>
+      <div style={{ width: '100%', maxWidth: '420px' }}>
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-blue rounded-2xl mb-4 shadow-lg shadow-brand-blue/30">
-            <IconPackage size={32} className="text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-white">Armazém Machado</h1>
-          <p className="text-gray-400 mt-2">Gestão de estoque em tempo real</p>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 64,
+            height: 64,
+            background: '#3b82f6',
+            borderRadius: '16px',
+            marginBottom: '16px',
+            fontSize: '28px',
+          }}>📦</div>
+          <h1 style={{ color: '#ffffff', fontSize: '28px', fontWeight: 700, margin: '0 0 8px' }}>
+            Armazém Machado
+          </h1>
+          <p style={{ color: '#8b949e', fontSize: '14px', margin: 0 }}>
+            Gestão de estoque em tempo real
+          </p>
         </div>
 
-        {/* Card de login */}
-        <div className="bg-dark-card border border-dark-border rounded-2xl p-8 shadow-xl">
-          <h2 className="text-xl font-semibold text-white mb-6">Entrar na sua conta</h2>
+        {/* Card */}
+        <div style={{
+          background: '#161b22',
+          border: '1px solid #30363d',
+          borderRadius: '20px',
+          padding: '32px',
+        }}>
+          <h2 style={{ color: '#ffffff', fontSize: '18px', fontWeight: 600, margin: '0 0 24px' }}>
+            Entrar na sua conta
+          </h2>
 
           {erro && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg px-4 py-3 mb-4 text-sm">
+            <div style={{
+              background: 'rgba(239,68,68,0.1)',
+              border: '1px solid rgba(239,68,68,0.3)',
+              color: '#f87171',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              marginBottom: '16px',
+              fontSize: '14px',
+            }}>
               {erro}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Email</label>
-              <div className="relative">
-                <IconMail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  required
-                  className="w-full bg-dark-bg border border-dark-border rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-colors"
-                />
-              </div>
+              <label style={{ display: 'block', color: '#d1d5db', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                required
+                style={{
+                  width: '100%',
+                  background: '#0d1117',
+                  border: '1px solid #30363d',
+                  borderRadius: '10px',
+                  padding: '10px 14px',
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Senha</label>
-              <div className="relative">
-                <IconLock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                <input
-                  type="password"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full bg-dark-bg border border-dark-border rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-colors"
-                />
-              </div>
+              <label style={{ display: 'block', color: '#d1d5db', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>
+                Senha
+              </label>
+              <input
+                type="password"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                placeholder="••••••••"
+                required
+                style={{
+                  width: '100%',
+                  background: '#0d1117',
+                  border: '1px solid #30363d',
+                  borderRadius: '10px',
+                  padding: '10px 14px',
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
             </div>
 
             <button
               type="submit"
               disabled={carregando}
-              className="w-full bg-brand-blue hover:bg-blue-600 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors mt-2"
+              style={{
+                width: '100%',
+                background: carregando ? '#1d4ed8' : '#3b82f6',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '10px',
+                padding: '12px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: carregando ? 'not-allowed' : 'pointer',
+                marginTop: '4px',
+              }}
             >
-              {carregando ? (
-                <>
-                  <IconLoader2 size={18} className="animate-spin" />
-                  Entrando...
-                </>
-              ) : (
-                'Entrar'
-              )}
+              {carregando ? 'Entrando...' : 'Entrar'}
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-dark-border">
-            <p className="text-xs text-gray-500 text-center">
-              Contas de demonstração configuradas no Supabase.<br />
-              Consulte o README para obter as credenciais.
+          <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #30363d', textAlign: 'center' }}>
+            <p style={{ color: '#6b7280', fontSize: '12px', margin: 0 }}>
+              Configure os usuários no Supabase conforme o README.
             </p>
           </div>
         </div>

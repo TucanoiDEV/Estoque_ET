@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
 // Contextos e hooks
 import { AuthContext, useAuthProvider } from './hooks/useAuth'
@@ -243,7 +243,6 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </ToastProvider>

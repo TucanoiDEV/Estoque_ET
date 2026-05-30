@@ -14,7 +14,7 @@ export function ProtectedRoute({ children }: Props) {
       <div
         style={{
           minHeight: '100vh',
-          background: '#0d1117',
+          background: '#1a0033',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
