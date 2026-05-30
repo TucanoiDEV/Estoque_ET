@@ -24,11 +24,13 @@ export function useAuthProvider(): AuthContextType {
         .usuarios()
         .select('*')
         .eq('id', userId)
-        .single()
+        .maybeSingle()
 
-      if (!error && data) {
+      if (data) {
         setUsuario(data as Usuario)
       } else {
+        // Usuário autenticado mas sem linha em public.usuarios ainda
+        if (error) console.warn('[EstoqueSync] Perfil não encontrado:', error.message)
         setUsuario(null)
       }
     } catch {
