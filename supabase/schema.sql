@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS public.produtos (
 
 CREATE TABLE IF NOT EXISTS public.estoque (
   id          UUID    DEFAULT gen_random_uuid() PRIMARY KEY,
-  produto_id  UUID    REFERENCES public.produtos(id) ON DELETE CASCADE,
+  produto_id  UUID    REFERENCES public.produtos(id) ON DELETE CASCADE UNIQUE,
   quantidade  INTEGER DEFAULT 0,
   updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
@@ -210,6 +210,16 @@ CREATE POLICY "configuracoes_all_admin"
   USING (public.get_meu_cargo() = 'admin');
 
 -- ─── Realtime ─────────────────────────────────────────────────────────────────
+-- Adiciona tabelas ao Realtime sem erro se já estiverem na publicação
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.estoque;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.entradas;
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.estoque;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END$$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.entradas;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END$$;
