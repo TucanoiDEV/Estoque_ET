@@ -1,4 +1,4 @@
-import { IconPackage, IconPlus, IconSun, IconMoon, IconLogout, IconUser } from '@tabler/icons-react'
+import { IconPackage, IconPlus, IconSun, IconMoon, IconLogout, IconUser, IconMenu2 } from '@tabler/icons-react'
 import { SyncIndicator } from './SyncIndicator'
 import { useAuth } from '../../hooks/useAuth'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -8,9 +8,10 @@ interface Props {
   onToggleTema: () => void
   sincronizando: boolean
   onNovaEntrada: () => void
+  onToggleSidebar: () => void
 }
 
-export function Header({ temaEscuro, onToggleTema, sincronizando, onNovaEntrada }: Props) {
+export function Header({ temaEscuro, onToggleTema, sincronizando, onNovaEntrada, onToggleSidebar }: Props) {
   const { usuario, logout } = useAuth()
   const { canRegisterEntrada, cargo } = usePermissions()
 
@@ -22,12 +23,21 @@ export function Header({ temaEscuro, onToggleTema, sincronizando, onNovaEntrada 
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 h-16 bg-dark-card/80 backdrop-blur-md border-b border-dark-border flex items-center px-4 gap-3">
+      {/* Botão de menu (apenas mobile) */}
+      <button
+        onClick={onToggleSidebar}
+        title="Menu"
+        className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-dark-hover transition-colors shrink-0"
+      >
+        <IconMenu2 size={20} />
+      </button>
+
       {/* Logo */}
-      <div className="flex items-center gap-2.5 mr-auto">
-        <div className="w-8 h-8 bg-brand-blue rounded-lg flex items-center justify-center shadow-lg shadow-brand-blue/30">
+      <div className="flex items-center gap-2.5 mr-auto min-w-0">
+        <div className="w-8 h-8 bg-brand-blue rounded-lg flex items-center justify-center shadow-lg shadow-brand-blue/30 shrink-0">
           <IconPackage size={18} className="text-white" />
         </div>
-        <span className="font-bold text-white text-lg tracking-tight">Armazém Machado</span>
+        <span className="font-bold text-white text-lg tracking-tight truncate hidden sm:inline">Armazém Machado</span>
       </div>
 
       {/* Indicador de sync */}

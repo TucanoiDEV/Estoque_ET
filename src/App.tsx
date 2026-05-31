@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthContext, useAuthProvider } from './hooks/useAuth'
 import { useEstoque } from './hooks/useEstoque'
 import { useRealtime } from './hooks/useRealtime'
+import { usePermissions } from './hooks/usePermissions'
 
 // Componentes compartilhados
 import { Header } from './components/shared/Header'
@@ -67,10 +68,12 @@ const subAbasConfig: { id: SubAbaConfig; label: string }[] = [
 
 // ─── Layout principal (app autenticado) ──────────────────────────────────────
 function AppLayout() {
+  const { isAdmin } = usePermissions()
   const [abaAtiva, setAbaAtiva] = useState<Aba>('dashboard')
   const [subAbaDash, setSubAbaDash] = useState<SubAbaDashboard>('graficos')
   const [subAbaConf, setSubAbaConf] = useState<SubAbaConfig>('empresa')
   const [modalAberto, setModalAberto] = useState(false)
+  const [sidebarAberta, setSidebarAberta] = useState(false)
 
   // Tema — persiste no localStorage
   const [temaEscuro, setTemaEscuro] = useState<boolean>(() => {
@@ -110,12 +113,18 @@ function AppLayout() {
           onToggleTema={() => setTemaEscuro((v) => !v)}
           sincronizando={sincronizando}
           onNovaEntrada={() => setModalAberto(true)}
+          onToggleSidebar={() => setSidebarAberta((v) => !v)}
         />
 
-        <Sidebar abaAtiva={abaAtiva} onMudarAba={setAbaAtiva} />
+        <Sidebar
+          abaAtiva={abaAtiva}
+          onMudarAba={setAbaAtiva}
+          aberta={sidebarAberta}
+          onFechar={() => setSidebarAberta(false)}
+        />
 
         {/* Conteúdo principal */}
-        <main className="ml-56 pt-16 min-h-screen">
+        <main className="ml-0 lg:ml-56 pt-16 min-h-screen">
           <div className="p-6 max-w-7xl mx-auto">
 
             {/* ── Dashboard ── */}
@@ -168,8 +177,8 @@ function AppLayout() {
               </div>
             )}
 
-            {/* ── Configurações ── */}
-            {abaAtiva === 'configuracoes' && (
+            {/* ── Configurações (exclusivo de admin) ── */}
+            {abaAtiva === 'configuracoes' && isAdmin() && (
               <div className="space-y-6">
                 <div>
                   <h1 className="text-2xl font-bold text-white">Configurações</h1>
