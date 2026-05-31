@@ -51,6 +51,36 @@
   }
 }
 
+/* Light mode: corrige visibilidade do texto */
+.light .text-white {
+  color: #1e293b;
+}
+/* Preserva texto branco dentro/sobre fundos coloridos */
+.light .bg-brand-blue.text-white,
+.light .bg-brand-green.text-white,
+.light .bg-brand-red.text-white,
+.light .bg-brand-purple.text-white,
+.light .bg-brand-blue .text-white,
+.light .bg-brand-green .text-white,
+.light .bg-brand-red .text-white,
+.light .bg-brand-purple .text-white {
+  color: #ffffff;
+}
+/* Escurece os cinzas para manter contraste */
+.light .text-gray-400 {
+  color: #4b5563;
+}
+.light .text-gray-500 {
+  color: #374151;
+}
+.light .text-gray-600 {
+  color: #1f2937;
+}
+/* Hover: texto escuro no modo claro */
+.light .hover\:text-white:hover {
+  color: #1e293b;
+}
+
 /* Transição suave entre temas */
 * {
   transition-property: background-color, border-color, color;

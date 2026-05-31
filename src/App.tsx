@@ -100,7 +100,7 @@ function AppLayout() {
   const { sincronizando } = useRealtime({ onEstoqueChange, onEntradasChange })
 
   return (
-    <div className={temaEscuro ? 'dark' : ''}>
+    <div className={temaEscuro ? 'dark' : 'light'}>
       <div className="min-h-screen bg-dark-bg text-dark-text">
         <Header
           temaEscuro={temaEscuro}
