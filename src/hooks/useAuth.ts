@@ -1,4 +1,5 @@
 import { useState, useEffect, createContext, useContext } from 'react'
+import type { User } from '@supabase/supabase-js'
 import { supabase, db } from '../services/supabase'
 import type { Usuario, AuthContextType } from '../types'
 
@@ -13,28 +14,39 @@ export function useAuth(): AuthContextType {
   return useContext(AuthContext)
 }
 
+function perfilFallback(authUser: User): Usuario {
+  return {
+    id: authUser.id,
+    nome: authUser.user_metadata?.full_name ?? authUser.email?.split('@')[0] ?? 'Usuário',
+    email: authUser.email ?? '',
+    cargo: 'operador',
+    created_at: authUser.created_at,
+  }
+}
+
 export function useAuthProvider(): AuthContextType {
   const [usuario, setUsuario] = useState<Usuario | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Busca o perfil completo do usuário (cargo etc.) na tabela usuarios
-  async function buscarPerfil(userId: string): Promise<void> {
+  async function buscarPerfil(authUser: User): Promise<void> {
     try {
       const { data, error } = await db
         .usuarios()
         .select('*')
-        .eq('id', userId)
+        .eq('id', authUser.id)
         .maybeSingle()
 
       if (data) {
         setUsuario(data as Usuario)
       } else {
-        // Usuário autenticado mas sem linha em public.usuarios ainda
+        // Usuário autenticado mas sem linha em public.usuarios — usa dados do auth como fallback
         if (error) console.warn('[EstoqueSync] Perfil não encontrado:', error.message)
-        setUsuario(null)
+        setUsuario(perfilFallback(authUser))
       }
     } catch {
-      setUsuario(null)
+      // Mantém acesso usando dados do auth para não bloquear o usuário autenticado
+      setUsuario(perfilFallback(authUser))
     }
   }
 
@@ -54,7 +66,7 @@ export function useAuthProvider(): AuthContextType {
       .then(({ data: { session } }) => {
         if (cancelado) return
         if (session?.user) {
-          buscarPerfil(session.user.id).finally(() => {
+          buscarPerfil(session.user).finally(() => {
             if (!cancelado) setLoading(false)
           })
         } else {
@@ -73,7 +85,7 @@ export function useAuthProvider(): AuthContextType {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (cancelado) return
       if (session?.user) {
-        buscarPerfil(session.user.id).finally(() => {
+        buscarPerfil(session.user).finally(() => {
           if (!cancelado) setLoading(false)
         })
       } else {

@@ -29,9 +29,15 @@ export function EstoqueSection() {
 
   async function salvar() {
     setSalvando(true)
-    await db.configuracoes().upsert({ chave: 'estoque_minimo_padrao', valor: String(estoqueMinimoPadrao) }, { onConflict: 'chave' })
-    await db.configuracoes().upsert({ chave: 'categorias', valor: JSON.stringify(categorias) }, { onConflict: 'chave' })
-    mostrarToast('Configurações de estoque salvas!', 'sucesso')
+    const { error } = await db.configuracoes().upsert([
+      { chave: 'estoque_minimo_padrao', valor: String(estoqueMinimoPadrao) },
+      { chave: 'categorias', valor: JSON.stringify(categorias) },
+    ], { onConflict: 'chave' })
+    if (error) {
+      mostrarToast(`Erro ao salvar: ${error.message}`, 'erro')
+    } else {
+      mostrarToast('Configurações de estoque salvas!', 'sucesso')
+    }
     setSalvando(false)
   }
 

@@ -29,9 +29,15 @@ export function IASection() {
 
   async function salvar() {
     setSalvando(true)
-    await db.configuracoes().upsert({ chave: 'claude_api_key', valor: apiKey }, { onConflict: 'chave' })
-    await db.configuracoes().upsert({ chave: 'alertas_ia', valor: String(alertasIA) }, { onConflict: 'chave' })
-    mostrarToast('Configurações da IA salvas!', 'sucesso')
+    const { error } = await db.configuracoes().upsert([
+      { chave: 'claude_api_key', valor: apiKey },
+      { chave: 'alertas_ia', valor: String(alertasIA) },
+    ], { onConflict: 'chave' })
+    if (error) {
+      mostrarToast(`Erro ao salvar: ${error.message}`, 'erro')
+    } else {
+      mostrarToast('Configurações da IA salvas!', 'sucesso')
+    }
     setSalvando(false)
   }
 

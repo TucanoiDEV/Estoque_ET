@@ -1,8 +1,9 @@
 import { useState, FormEvent } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
 export function LoginPage() {
-  const { login } = useAuth()
+  const { login, usuario, loading } = useAuth()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [carregando, setCarregando] = useState(false)
@@ -23,6 +24,8 @@ export function LoginPage() {
       setCarregando(false)
     }
   }
+
+  if (!loading && usuario) return <Navigate to="/" replace />
 
   return (
     <div style={{
@@ -83,10 +86,12 @@ export function LoginPage() {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', color: '#d1d5db', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>
+              <label htmlFor="email" style={{ display: 'block', color: '#d1d5db', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>
                 Email
               </label>
               <input
+                id="email"
+                name="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -108,10 +113,12 @@ export function LoginPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', color: '#d1d5db', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>
+              <label htmlFor="senha" style={{ display: 'block', color: '#d1d5db', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>
                 Senha
               </label>
               <input
+                id="senha"
+                name="senha"
                 type="password"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}

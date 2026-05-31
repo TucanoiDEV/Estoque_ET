@@ -30,10 +30,12 @@ export function EmpresaSection() {
   async function salvar() {
     setSalvando(true)
     const entradas = Object.entries(form).map(([chave, valor]) => ({ chave, valor }))
-    for (const { chave, valor } of entradas) {
-      await db.configuracoes().upsert({ chave, valor }, { onConflict: 'chave' })
+    const { error } = await db.configuracoes().upsert(entradas, { onConflict: 'chave' })
+    if (error) {
+      mostrarToast(`Erro ao salvar: ${error.message}`, 'erro')
+    } else {
+      mostrarToast('Configurações da empresa salvas!', 'sucesso')
     }
-    mostrarToast('Configurações da empresa salvas!', 'sucesso')
     setSalvando(false)
   }
 

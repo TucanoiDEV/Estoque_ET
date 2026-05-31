@@ -9,10 +9,54 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <script type="module" crossorigin src="/assets/index-UzhPfX2H.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CGoJkSC0.css">
+    <style>
+      /* Fallback visível se o React não montar */
+      #loading-fallback {
+        position: fixed;
+        inset: 0;
+        background: #0d1117;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: Inter, system-ui, sans-serif;
+        color: #8b949e;
+        font-size: 14px;
+        gap: 12px;
+        z-index: 9999;
+      }
+      #loading-fallback .dot {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #30363d;
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+    <script type="module" crossorigin src="/assets/index-DLT9DKjB.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-wmdrWGY5.css">
   </head>
   <body class="bg-dark-bg text-white font-sans antialiased">
-    <div id="root"></div>
+    <!-- Fallback: aparece enquanto React não montar, some depois -->
+    <div id="loading-fallback">
+      <div class="dot"></div>
+      <p style="margin:0">Carregando Armazém Machado...</p>
+      <p style="margin:0;font-size:11px;color:#484f58">Se esta tela persistir, abra o Console (F12) e verifique os erros.</p>
+    </div>
+
+    <div id="root"></div>
+    <script>
+      // Remove o fallback assim que React montar qualquer coisa no #root
+      const obs = new MutationObserver(() => {
+        if (document.getElementById('root')?.children.length) {
+          const el = document.getElementById('loading-fallback')
+          if (el) el.style.display = 'none'
+          obs.disconnect()
+        }
+      })
+      obs.observe(document.getElementById('root'), { childList: true })
+    </script>
   </body>
 </html>

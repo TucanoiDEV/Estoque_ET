@@ -52,7 +52,7 @@ const relatorios: RelatorioConfig[] = [
   },
 ]
 
-export function RelatoriosTab({ produtos, entradas, loading }: Props) {
+export function RelatoriosTab({ produtos, entradas, fornecedores, loading }: Props) {
   const [gerando, setGerando] = useState<string | null>(null)
   const { canExport, canExportLimitado } = usePermissions()
   const { mostrarToast } = useToast()
@@ -175,7 +175,7 @@ export function RelatoriosTab({ produtos, entradas, loading }: Props) {
           { label: 'Total entradas', valor: totalEntradasMes.toLocaleString('pt-BR'), cor: 'text-brand-green' },
           { label: 'Total saídas', valor: totalSaidasMes.toLocaleString('pt-BR'), cor: 'text-brand-red' },
           { label: 'Itens cadastrados', valor: produtos.length.toLocaleString('pt-BR'), cor: 'text-brand-blue' },
-          { label: 'Fornecedores ativos', valor: '—', cor: 'text-brand-purple' },
+          { label: 'Fornecedores ativos', valor: fornecedores.length.toLocaleString('pt-BR'), cor: 'text-brand-purple' },
         ].map((item) => (
           <div key={item.label} className="bg-dark-card border border-dark-border rounded-xl p-4">
             <div className="text-xs text-gray-500 mb-1">{item.label}</div>

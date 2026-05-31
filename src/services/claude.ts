@@ -21,6 +21,8 @@ export async function consultarIA(prompt: string, apiKey: string): Promise<Respo
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
+        // Necessário para chamar a API direto do navegador (senão bloqueia por CORS)
+        'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',

@@ -100,7 +100,7 @@ export function NovaEntradaModal({ onFechar, onSalvo }: Props) {
         .estoque()
         .select('id, quantidade')
         .eq('produto_id', form.produto_id)
-        .single()
+        .maybeSingle()
 
       if (estoqueExistente) {
         // Incrementa a quantidade existente
