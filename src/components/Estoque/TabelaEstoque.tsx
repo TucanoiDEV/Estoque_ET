@@ -233,7 +233,7 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
               <table className="w-full text-sm">
                 <thead className="sticky top-0 z-10 bg-dark-card">
                   <tr className="border-b border-dark-border">
-                    {['Código', 'Produto', 'Categoria', 'Medida', 'Cor', 'Qtd.', 'Mínimo', 'Custo unit.', 'Status', ''].map((col) => (
+                    {['Código', 'Produto', 'Categoria', 'Medida', 'Cor', 'Qtd.', 'Mínimo', 'Custo', 'Status', ''].map((col) => (
                       <th
                         key={col}
                         className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap"
@@ -273,9 +273,12 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
                         </td>
                         <td className="px-5 py-3.5 text-gray-400">{produto.estoque_minimo}</td>
                         <td className="px-5 py-3.5 text-gray-300">
-                          {produto.custo_unitario
-                            ? produto.custo_unitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                            : '—'}
+                          {produto.custo_unitario ? (
+                            <>
+                              {produto.custo_unitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                              <span className="text-gray-500">/{produto.unidade.toLowerCase()}</span>
+                            </>
+                          ) : '—'}
                         </td>
                         <td className="px-5 py-3.5">
                           <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${badge.classes}`}>
