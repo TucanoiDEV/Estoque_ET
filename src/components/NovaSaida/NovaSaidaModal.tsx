@@ -52,7 +52,7 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
   useEffect(() => {
     async function carregar() {
       const [{ data: prods }, { data: estoques }] = await Promise.all([
-        db.produtos().select('id, codigo, nome, unidade, categoria, custo_unitario, estoque_minimo, local_armazenamento, created_at').order('nome'),
+        db.produtos().select('id, codigo, nome, unidade, categoria, cor, custo_unitario, estoque_minimo, local_armazenamento, created_at').order('nome'),
         db.estoque().select('id, produto_id, quantidade').gt('quantidade', 0),
       ])
       if (!prods || !estoques) return

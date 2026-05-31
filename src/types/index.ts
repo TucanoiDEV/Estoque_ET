@@ -20,6 +20,7 @@ export interface Produto {
   nome: string
   categoria: string | null
   unidade: string
+  cor: string | null
   custo_unitario: number | null
   estoque_minimo: number
   local_armazenamento: string | null
@@ -141,4 +142,5 @@ export interface FiltrosEstoque {
   categoria: string
   status: StatusEstoque | 'todos'
   medida: string
+  cor: string
 }

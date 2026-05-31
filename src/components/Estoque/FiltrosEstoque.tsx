@@ -1,9 +1,10 @@
-import { IconSearch, IconX } from '@tabler/icons-react'
+import { IconSearch, IconX, IconTag } from '@tabler/icons-react'
 import type { FiltrosEstoque, StatusEstoque } from '../../types'
 
 interface Props {
   filtros: FiltrosEstoque
   categorias: string[]
+  coresDisponiveis: string[]
   onChange: (filtros: FiltrosEstoque) => void
 }
 
@@ -23,10 +24,12 @@ const medidas = [
   { value: 'M', label: 'Metro (M)' },
 ]
 
-export function FiltrosEstoque({ filtros, categorias, onChange }: Props) {
+export function FiltrosEstoque({ filtros, categorias, coresDisponiveis, onChange }: Props) {
   function set(parcial: Partial<FiltrosEstoque>) {
     onChange({ ...filtros, ...parcial })
   }
+
+  const mostrarFiltroCor = filtros.categoria !== '' && coresDisponiveis.length > 0
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -71,7 +74,7 @@ export function FiltrosEstoque({ filtros, categorias, onChange }: Props) {
       {categorias.length > 0 && (
         <select
           value={filtros.categoria}
-          onChange={(e) => set({ categoria: e.target.value })}
+          onChange={(e) => set({ categoria: e.target.value, cor: '' })}
           className="bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-brand-blue transition-colors"
         >
           <option value="">Todas as categorias</option>
@@ -81,6 +84,25 @@ export function FiltrosEstoque({ filtros, categorias, onChange }: Props) {
             </option>
           ))}
         </select>
+      )}
+
+      {/* Filtro por cor — aparece quando a categoria selecionada tem cores cadastradas */}
+      {mostrarFiltroCor && (
+        <div className="flex items-center gap-1.5 bg-dark-card border border-dark-border rounded-lg px-3 py-2">
+          <IconTag size={14} className="text-gray-500 shrink-0" />
+          <select
+            value={filtros.cor}
+            onChange={(e) => set({ cor: e.target.value })}
+            className="bg-transparent text-sm text-gray-300 focus:outline-none"
+          >
+            <option value="">Todas as cores</option>
+            {coresDisponiveis.map((cor) => (
+              <option key={cor} value={cor}>
+                {cor}
+              </option>
+            ))}
+          </select>
+        </div>
       )}
 
       {/* Filtro por medida */}

@@ -12,6 +12,20 @@ interface Props {
   onRecarregar: () => void
 }
 
+function corBadgeClass(cor: string): string {
+  const map: Record<string, string> = {
+    azul:     'bg-blue-500/20 text-blue-300',
+    verde:    'bg-green-500/20 text-green-300',
+    preta:    'bg-gray-600/30 text-gray-300',
+    prata:    'bg-slate-400/20 text-slate-200',
+    laranja:  'bg-orange-500/20 text-orange-300',
+    branca:   'bg-white/10 text-white',
+    vermelha: 'bg-red-500/20 text-red-300',
+    bege:     'bg-yellow-700/20 text-yellow-200',
+  }
+  return map[cor.toLowerCase()] ?? 'bg-dark-hover text-gray-300'
+}
+
 const badgeStatus: Record<StatusEstoque, { classes: string; label: string }> = {
   normal: { classes: 'bg-brand-green/15 text-brand-green', label: 'Normal' },
   baixo: { classes: 'bg-brand-yellow/15 text-brand-yellow', label: 'Baixo' },
@@ -131,13 +145,23 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
   const { mostrarToast } = useToast()
   const [produtoEditando, setProdutoEditando] = useState<ProdutoComEstoque | null>(null)
   const [excluindo, setExcluindo] = useState<string | null>(null)
-  const [filtros, setFiltros] = useState<FiltrosType>({ busca: '', categoria: '', status: 'todos', medida: '' })
+  const [filtros, setFiltros] = useState<FiltrosType>({ busca: '', categoria: '', status: 'todos', medida: '', cor: '' })
 
   // Extrai categorias únicas
   const categorias = useMemo(
     () => [...new Set(produtos.map((p) => p.categoria).filter(Boolean) as string[])].sort(),
     [produtos]
   )
+
+  // Extrai cores disponíveis para a categoria atualmente selecionada
+  const coresDisponiveis = useMemo(() => {
+    if (!filtros.categoria) return []
+    return [...new Set(
+      produtos
+        .filter((p) => p.categoria === filtros.categoria && p.cor)
+        .map((p) => p.cor as string)
+    )].sort()
+  }, [produtos, filtros.categoria])
 
   // Aplica filtros
   const produtosFiltrados = useMemo(() => {
@@ -149,7 +173,8 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
       const categoriaOk = !filtros.categoria || p.categoria === filtros.categoria
       const statusOk = filtros.status === 'todos' || p.status === filtros.status
       const medidaOk = !filtros.medida || (p.unidade ?? '').toUpperCase() === filtros.medida.toUpperCase()
-      return buscaOk && categoriaOk && statusOk && medidaOk
+      const corOk = !filtros.cor || (p.cor ?? '').toLowerCase() === filtros.cor.toLowerCase()
+      return buscaOk && categoriaOk && statusOk && medidaOk && corOk
     })
   }, [produtos, filtros])
 
@@ -195,7 +220,7 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
       )}
 
       <div className="space-y-4">
-        <FiltrosEstoque filtros={filtros} categorias={categorias} onChange={setFiltros} />
+        <FiltrosEstoque filtros={filtros} categorias={categorias} coresDisponiveis={coresDisponiveis} onChange={setFiltros} />
 
         <div className="bg-dark-card border border-dark-border rounded-xl overflow-hidden">
           {produtosFiltrados.length === 0 ? (
@@ -208,7 +233,7 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
               <table className="w-full text-sm">
                 <thead className="sticky top-0 z-10 bg-dark-card">
                   <tr className="border-b border-dark-border">
-                    {['Código', 'Produto', 'Categoria', 'Medida', 'Qtd.', 'Mínimo', 'Custo unit.', 'Status', ''].map((col) => (
+                    {['Código', 'Produto', 'Categoria', 'Medida', 'Cor', 'Qtd.', 'Mínimo', 'Custo unit.', 'Status', ''].map((col) => (
                       <th
                         key={col}
                         className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap"
@@ -233,6 +258,15 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
                           <span className="inline-block px-2 py-0.5 rounded-md text-xs font-semibold bg-dark-hover text-gray-300 uppercase">
                             {produto.unidade || '—'}
                           </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {produto.cor ? (
+                            <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-semibold ${corBadgeClass(produto.cor)}`}>
+                              {produto.cor}
+                            </span>
+                          ) : (
+                            <span className="text-gray-700">—</span>
+                          )}
                         </td>
                         <td className="px-5 py-3.5 text-white font-semibold">
                           {produto.quantidade.toLocaleString('pt-BR')}

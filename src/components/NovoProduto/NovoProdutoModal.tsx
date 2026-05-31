@@ -13,6 +13,7 @@ interface FormProduto {
   nome: string
   categoria: string
   unidade: string
+  cor: string
   custo_unitario: number
   estoque_minimo: number
   quantidade_inicial: number
@@ -37,6 +38,7 @@ const FORM_INICIAL: FormProduto = {
   nome: '',
   categoria: '',
   unidade: 'UN',
+  cor: '',
   custo_unitario: 0,
   estoque_minimo: 0,
   quantidade_inicial: 0,
@@ -78,6 +80,7 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
           nome: form.nome.trim(),
           categoria: form.categoria.trim() || null,
           unidade: form.unidade,
+          cor: form.cor.trim() || null,
           custo_unitario: form.custo_unitario || null,
           estoque_minimo: form.estoque_minimo,
           local_armazenamento: form.local_armazenamento || null,
@@ -181,16 +184,28 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
             {erros.nome && <p className="text-xs text-brand-red mt-1">{erros.nome}</p>}
           </div>
 
-          {/* Categoria */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Categoria</label>
-            <input
-              type="text"
-              value={form.categoria}
-              onChange={(e) => set('categoria', e.target.value)}
-              placeholder="Ex: Alimentos, Ferramentas, Limpeza..."
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors"
-            />
+          {/* Categoria + Cor */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Categoria</label>
+              <input
+                type="text"
+                value={form.categoria}
+                onChange={(e) => set('categoria', e.target.value)}
+                placeholder="Ex: Lona, Ferramentas..."
+                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Cor</label>
+              <input
+                type="text"
+                value={form.cor}
+                onChange={(e) => set('cor', e.target.value)}
+                placeholder="Ex: Azul, Verde, Preta..."
+                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors"
+              />
+            </div>
           </div>
 
           {/* Custo unit. + Estoque mínimo */}
