@@ -131,7 +131,7 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
   const { mostrarToast } = useToast()
   const [produtoEditando, setProdutoEditando] = useState<ProdutoComEstoque | null>(null)
   const [excluindo, setExcluindo] = useState<string | null>(null)
-  const [filtros, setFiltros] = useState<FiltrosType>({ busca: '', categoria: '', status: 'todos' })
+  const [filtros, setFiltros] = useState<FiltrosType>({ busca: '', categoria: '', status: 'todos', medida: '' })
 
   // Extrai categorias únicas
   const categorias = useMemo(
@@ -148,7 +148,8 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
         p.codigo.toLowerCase().includes(filtros.busca.toLowerCase())
       const categoriaOk = !filtros.categoria || p.categoria === filtros.categoria
       const statusOk = filtros.status === 'todos' || p.status === filtros.status
-      return buscaOk && categoriaOk && statusOk
+      const medidaOk = !filtros.medida || (p.unidade ?? '').toUpperCase() === filtros.medida.toUpperCase()
+      return buscaOk && categoriaOk && statusOk && medidaOk
     })
   }, [produtos, filtros])
 
@@ -203,11 +204,11 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
               <span className="text-sm">Nenhum produto encontrado.</span>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-auto max-h-[520px]">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 z-10 bg-dark-card">
                   <tr className="border-b border-dark-border">
-                    {['Código', 'Produto', 'Categoria', 'Qtd.', 'Mínimo', 'Custo unit.', 'Status', ''].map((col) => (
+                    {['Código', 'Produto', 'Categoria', 'Medida', 'Qtd.', 'Mínimo', 'Custo unit.', 'Status', ''].map((col) => (
                       <th
                         key={col}
                         className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap"
@@ -228,9 +229,13 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
                         <td className="px-5 py-3.5 font-mono text-xs text-gray-400">{produto.codigo}</td>
                         <td className="px-5 py-3.5 font-medium text-white">{produto.nome}</td>
                         <td className="px-5 py-3.5 text-gray-400">{produto.categoria ?? '—'}</td>
+                        <td className="px-5 py-3.5">
+                          <span className="inline-block px-2 py-0.5 rounded-md text-xs font-semibold bg-dark-hover text-gray-300 uppercase">
+                            {produto.unidade || '—'}
+                          </span>
+                        </td>
                         <td className="px-5 py-3.5 text-white font-semibold">
                           {produto.quantidade.toLocaleString('pt-BR')}
-                          <span className="text-xs text-gray-500 ml-1">{produto.unidade}</span>
                         </td>
                         <td className="px-5 py-3.5 text-gray-400">{produto.estoque_minimo}</td>
                         <td className="px-5 py-3.5 text-gray-300">

@@ -140,4 +140,5 @@ export interface FiltrosEstoque {
   busca: string
   categoria: string
   status: StatusEstoque | 'todos'
+  medida: string
 }

@@ -16,15 +16,22 @@ const abas: { id: AbaStatus; label: string }[] = [
   { id: 'normal', label: 'Normal' },
 ]
 
+const medidas = [
+  { value: '', label: 'Todas as medidas' },
+  { value: 'KG', label: 'Quilograma (Kg)' },
+  { value: 'UN', label: 'Unidade (UN)' },
+  { value: 'M', label: 'Metro (M)' },
+]
+
 export function FiltrosEstoque({ filtros, categorias, onChange }: Props) {
   function set(parcial: Partial<FiltrosEstoque>) {
     onChange({ ...filtros, ...parcial })
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3">
       {/* Busca */}
-      <div className="relative flex-1 w-full sm:max-w-xs">
+      <div className="relative flex-1 min-w-[200px] max-w-xs">
         <IconSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
         <input
           type="text"
@@ -75,6 +82,19 @@ export function FiltrosEstoque({ filtros, categorias, onChange }: Props) {
           ))}
         </select>
       )}
+
+      {/* Filtro por medida */}
+      <select
+        value={filtros.medida}
+        onChange={(e) => set({ medida: e.target.value })}
+        className="bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-brand-blue transition-colors"
+      >
+        {medidas.map((m) => (
+          <option key={m.value} value={m.value}>
+            {m.label}
+          </option>
+        ))}
+      </select>
     </div>
   )
 }

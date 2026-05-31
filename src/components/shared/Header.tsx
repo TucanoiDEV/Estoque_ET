@@ -1,4 +1,4 @@
-import { IconPackage, IconPlus, IconSun, IconMoon, IconLogout, IconUser, IconMenu2 } from '@tabler/icons-react'
+import { IconPackage, IconPlus, IconMinus, IconSquarePlus, IconSun, IconMoon, IconLogout, IconUser, IconMenu2 } from '@tabler/icons-react'
 import { SyncIndicator } from './SyncIndicator'
 import { useAuth } from '../../hooks/useAuth'
 import { usePermissions } from '../../hooks/usePermissions'
@@ -8,12 +8,14 @@ interface Props {
   onToggleTema: () => void
   sincronizando: boolean
   onNovaEntrada: () => void
+  onNovaSaida: () => void
+  onNovoProduto: () => void
   onToggleSidebar: () => void
 }
 
-export function Header({ temaEscuro, onToggleTema, sincronizando, onNovaEntrada, onToggleSidebar }: Props) {
+export function Header({ temaEscuro, onToggleTema, sincronizando, onNovaEntrada, onNovaSaida, onNovoProduto, onToggleSidebar }: Props) {
   const { usuario, logout } = useAuth()
-  const { canRegisterEntrada, cargo } = usePermissions()
+  const { canRegisterEntrada, canRegisterSaida, canEdit, cargo } = usePermissions()
 
   const badgeCargo: Record<string, string> = {
     admin: 'bg-brand-purple/20 text-brand-purple',
@@ -22,7 +24,7 @@ export function Header({ temaEscuro, onToggleTema, sincronizando, onNovaEntrada,
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 h-16 bg-dark-card/80 backdrop-blur-md border-b border-dark-border flex items-center px-4 gap-3">
+    <header className="fixed top-0 left-0 right-0 z-40 h-16 bg-dark-card/80 backdrop-blur-md border-b border-dark-border flex items-center px-4 gap-2">
       {/* Botão de menu (apenas mobile) */}
       <button
         onClick={onToggleSidebar}
@@ -43,14 +45,39 @@ export function Header({ temaEscuro, onToggleTema, sincronizando, onNovaEntrada,
       {/* Indicador de sync */}
       <SyncIndicator sincronizando={sincronizando} />
 
+      {/* Botão novo produto */}
+      {canEdit() && (
+        <button
+          onClick={onNovoProduto}
+          title="Cadastrar novo produto"
+          className="flex items-center gap-1.5 bg-brand-blue hover:bg-blue-600 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-lg shadow-brand-blue/20"
+        >
+          <IconSquarePlus size={16} />
+          <span className="hidden md:inline">Novo produto</span>
+        </button>
+      )}
+
       {/* Botão nova entrada */}
       {canRegisterEntrada() && (
         <button
           onClick={onNovaEntrada}
+          title="Registrar entrada de estoque"
           className="flex items-center gap-1.5 bg-brand-green hover:bg-green-500 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-lg shadow-brand-green/20"
         >
           <IconPlus size={16} />
-          <span className="hidden sm:inline">Nova entrada</span>
+          <span className="hidden md:inline">Nova entrada</span>
+        </button>
+      )}
+
+      {/* Botão saída */}
+      {canRegisterSaida() && (
+        <button
+          onClick={onNovaSaida}
+          title="Registrar saída de estoque"
+          className="flex items-center gap-1.5 bg-brand-red hover:bg-red-600 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-lg shadow-brand-red/20"
+        >
+          <IconMinus size={16} />
+          <span className="hidden md:inline">Saída</span>
         </button>
       )}
 

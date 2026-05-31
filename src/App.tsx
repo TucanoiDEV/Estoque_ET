@@ -32,8 +32,10 @@ import { NotificacoesSection } from './components/Configuracoes/NotificacoesSect
 import { IASection } from './components/Configuracoes/IASection'
 import { BackupSection } from './components/Configuracoes/BackupSection'
 
-// Modal
+// Modais
 import { NovaEntradaModal } from './components/NovaEntrada/NovaEntradaModal'
+import { NovaSaidaModal } from './components/NovaSaida/NovaSaidaModal'
+import { NovoProdutoModal } from './components/NovoProduto/NovoProdutoModal'
 
 // ─── Sub-abas do Dashboard ────────────────────────────────────────────────────
 type SubAbaDashboard = 'graficos' | 'relatorios' | 'historico'
@@ -67,6 +69,8 @@ function AppLayout() {
   const [subAbaDash, setSubAbaDash] = useState<SubAbaDashboard>('graficos')
   const [subAbaConf, setSubAbaConf] = useState<SubAbaConfig>('usuarios')
   const [modalAberto, setModalAberto] = useState(false)
+  const [modalSaidaAberto, setModalSaidaAberto] = useState(false)
+  const [modalProdutoAberto, setModalProdutoAberto] = useState(false)
   const [sidebarAberta, setSidebarAberta] = useState(false)
 
   // Tema — persiste no localStorage
@@ -107,6 +111,8 @@ function AppLayout() {
           onToggleTema={() => setTemaEscuro((v) => !v)}
           sincronizando={sincronizando}
           onNovaEntrada={() => setModalAberto(true)}
+          onNovaSaida={() => setModalSaidaAberto(true)}
+          onNovoProduto={() => setModalProdutoAberto(true)}
           onToggleSidebar={() => setSidebarAberta((v) => !v)}
         />
 
@@ -216,6 +222,22 @@ function AppLayout() {
         {modalAberto && (
           <NovaEntradaModal
             onFechar={() => setModalAberto(false)}
+            onSalvo={recarregar}
+          />
+        )}
+
+        {/* Modal de saída */}
+        {modalSaidaAberto && (
+          <NovaSaidaModal
+            onFechar={() => setModalSaidaAberto(false)}
+            onSalvo={recarregar}
+          />
+        )}
+
+        {/* Modal de novo produto */}
+        {modalProdutoAberto && (
+          <NovoProdutoModal
+            onFechar={() => setModalProdutoAberto(false)}
             onSalvo={recarregar}
           />
         )}
