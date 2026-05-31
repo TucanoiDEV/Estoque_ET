@@ -26,13 +26,11 @@ import { HistoricoTab } from './components/Dashboard/HistoricoTab'
 import { TabelaEstoque } from './components/Estoque/TabelaEstoque'
 
 // Configurações
-import { EmpresaSection } from './components/Configuracoes/EmpresaSection'
 import { UsuariosSection } from './components/Configuracoes/UsuariosSection'
 import { EstoqueSection } from './components/Configuracoes/EstoqueSection'
 import { NotificacoesSection } from './components/Configuracoes/NotificacoesSection'
 import { IASection } from './components/Configuracoes/IASection'
 import { BackupSection } from './components/Configuracoes/BackupSection'
-import { AparenciaSection } from './components/Configuracoes/AparenciaSection'
 
 // Modal
 import { NovaEntradaModal } from './components/NovaEntrada/NovaEntradaModal'
@@ -48,22 +46,18 @@ const subAbasDashboard: { id: SubAbaDashboard; label: string }[] = [
 
 // ─── Sub-abas de Configurações ────────────────────────────────────────────────
 type SubAbaConfig =
-  | 'empresa'
   | 'usuarios'
   | 'estoque'
   | 'notificacoes'
   | 'ia'
   | 'backup'
-  | 'aparencia'
 
 const subAbasConfig: { id: SubAbaConfig; label: string }[] = [
-  { id: 'empresa', label: 'Empresa' },
   { id: 'usuarios', label: 'Usuários' },
   { id: 'estoque', label: 'Estoque' },
   { id: 'notificacoes', label: 'Notificações' },
   { id: 'ia', label: 'Assistente IA' },
   { id: 'backup', label: 'Backup' },
-  { id: 'aparencia', label: 'Aparência' },
 ]
 
 // ─── Layout principal (app autenticado) ──────────────────────────────────────
@@ -71,7 +65,7 @@ function AppLayout() {
   const { isAdmin } = usePermissions()
   const [abaAtiva, setAbaAtiva] = useState<Aba>('dashboard')
   const [subAbaDash, setSubAbaDash] = useState<SubAbaDashboard>('graficos')
-  const [subAbaConf, setSubAbaConf] = useState<SubAbaConfig>('empresa')
+  const [subAbaConf, setSubAbaConf] = useState<SubAbaConfig>('usuarios')
   const [modalAberto, setModalAberto] = useState(false)
   const [sidebarAberta, setSidebarAberta] = useState(false)
 
@@ -107,7 +101,7 @@ function AppLayout() {
 
   return (
     <div className={temaEscuro ? 'dark' : ''}>
-      <div className="min-h-screen bg-dark-bg text-white">
+      <div className="min-h-screen bg-dark-bg text-dark-text">
         <Header
           temaEscuro={temaEscuro}
           onToggleTema={() => setTemaEscuro((v) => !v)}
@@ -205,15 +199,11 @@ function AppLayout() {
 
                   {/* Painel da seção selecionada */}
                   <div className="flex-1 bg-dark-card border border-dark-border rounded-xl p-6 min-h-96">
-                    {subAbaConf === 'empresa' && <EmpresaSection />}
                     {subAbaConf === 'usuarios' && <UsuariosSection />}
                     {subAbaConf === 'estoque' && <EstoqueSection />}
                     {subAbaConf === 'notificacoes' && <NotificacoesSection />}
                     {subAbaConf === 'ia' && <IASection />}
                     {subAbaConf === 'backup' && <BackupSection />}
-                    {subAbaConf === 'aparencia' && (
-                      <AparenciaSection temaEscuro={temaEscuro} onToggleTema={() => setTemaEscuro((v) => !v)} />
-                    )}
                   </div>
                 </div>
               </div>

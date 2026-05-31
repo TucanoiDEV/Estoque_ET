@@ -7,11 +7,12 @@ export default {
       colors: {
         // Paleta Armazém Machado — baseada nas imagens de referência
         dark: {
-          bg: '#0d1117',
-          card: '#161b22',
-          card2: '#1c2333',
-          border: '#30363d',
-          hover: '#21262d',
+          bg: 'var(--color-bg)',
+          card: 'var(--color-card)',
+          card2: 'var(--color-card2)',
+          border: 'var(--color-border)',
+          hover: 'var(--color-hover)',
+          text: 'var(--color-text)',
         },
         brand: {
           blue: '#3b82f6',

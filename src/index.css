@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS variables para suporte a light/dark mode */
+:root {
+  --color-bg:     #f1f5f9;
+  --color-card:   #ffffff;
+  --color-card2:  #f8fafc;
+  --color-border: #e2e8f0;
+  --color-hover:  #f1f5f9;
+  --color-text:   #111827;
+}
+
+.dark {
+  --color-bg:     #0d1117;
+  --color-card:   #161b22;
+  --color-card2:  #1c2333;
+  --color-border: #30363d;
+  --color-hover:  #21262d;
+  --color-text:   #f9fafb;
+}
+
 /* Scrollbar personalizada */
 @layer base {
   ::-webkit-scrollbar {
