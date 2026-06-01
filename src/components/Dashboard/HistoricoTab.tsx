@@ -22,7 +22,8 @@ interface RegistroUnificado {
   tipo: 'entrada' | 'saida'
   data: string
   produto: string
-  anotacao: string
+  fornecedor: string
+  motivo: string
   quantidade: number
   total: number | null
   status: string
@@ -33,11 +34,12 @@ interface Filtros {
   dataInicio: string
   dataFim: string
   produto: string
-  anotacao: string
+  fornecedor: string
+  motivo: string
   status: string
 }
 
-type ColOrdem = 'tipo' | 'data' | 'produto' | 'anotacao' | 'quantidade' | 'total' | 'status'
+type ColOrdem = 'tipo' | 'data' | 'produto' | 'fornecedor' | 'motivo' | 'quantidade' | 'total' | 'status'
 type DirOrdem = 'asc' | 'desc'
 
 interface FiltroPopover {
@@ -63,7 +65,7 @@ const labelStatus: Record<string, string> = {
 const inputCls =
   'w-full text-xs bg-dark-bg border border-dark-border rounded px-2 py-1.5 text-gray-300 placeholder-gray-600 focus:outline-none focus:border-brand-blue/50'
 
-const COLUNAS_FILTRAVELIS: ColOrdem[] = ['data', 'produto', 'anotacao', 'status']
+const COLUNAS_FILTRAVELIS: ColOrdem[] = ['data', 'produto', 'fornecedor', 'motivo', 'status']
 
 export function HistoricoTab({ entradas, saidas, loading }: Props) {
   const [filtros, setFiltros] = useState<Filtros>({
@@ -71,7 +73,8 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
     dataInicio: '',
     dataFim: '',
     produto: '',
-    anotacao: '',
+    fornecedor: '',
+    motivo: '',
     status: '',
   })
   const [ordemCol, setOrdemCol] = useState<ColOrdem>('data')
@@ -108,7 +111,8 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
     switch (col) {
       case 'data': return !!(filtros.dataInicio || filtros.dataFim)
       case 'produto': return !!filtros.produto
-      case 'anotacao': return !!filtros.anotacao
+      case 'fornecedor': return !!filtros.fornecedor
+      case 'motivo': return !!filtros.motivo
       case 'status': return !!filtros.status
       default: return false
     }
@@ -121,7 +125,8 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
         atualizar('dataFim', '')
         break
       case 'produto': atualizar('produto', ''); break
-      case 'anotacao': atualizar('anotacao', ''); break
+      case 'fornecedor': atualizar('fornecedor', ''); break
+      case 'motivo': atualizar('motivo', ''); break
       case 'status': atualizar('status', ''); break
     }
   }
@@ -133,7 +138,8 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
       tipo: 'entrada' as const,
       data: en.data_recebimento.slice(0, 10),
       produto: (en.produto as any)?.nome ?? '—',
-      anotacao: (en.fornecedor as any)?.nome ?? '—',
+      fornecedor: (en.fornecedor as any)?.nome ?? '—',
+      motivo: '—',
       quantidade: en.quantidade,
       total: en.total,
       status: en.status,
@@ -144,7 +150,8 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
       tipo: 'saida' as const,
       data: sa.data_saida.slice(0, 10),
       produto: (sa.produto as any)?.nome ?? '—',
-      anotacao: sa.motivo ?? '—',
+      fornecedor: '—',
+      motivo: sa.motivo ?? '—',
       quantidade: sa.quantidade,
       total: null,
       status: '',
@@ -158,7 +165,8 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
       if (filtros.dataInicio && r.data < filtros.dataInicio) return false
       if (filtros.dataFim && r.data > filtros.dataFim) return false
       if (filtros.produto && !r.produto.toLowerCase().includes(filtros.produto.toLowerCase())) return false
-      if (filtros.anotacao && !r.anotacao.toLowerCase().includes(filtros.anotacao.toLowerCase())) return false
+      if (filtros.fornecedor && !r.fornecedor.toLowerCase().includes(filtros.fornecedor.toLowerCase())) return false
+      if (filtros.motivo && !r.motivo.toLowerCase().includes(filtros.motivo.toLowerCase())) return false
       if (filtros.status) {
         if (r.tipo === 'saida' || r.status !== filtros.status) return false
       }
@@ -171,7 +179,8 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
         case 'tipo': return mult * a.tipo.localeCompare(b.tipo)
         case 'data': return mult * a.data.localeCompare(b.data)
         case 'produto': return mult * a.produto.localeCompare(b.produto)
-        case 'anotacao': return mult * a.anotacao.localeCompare(b.anotacao)
+        case 'fornecedor': return mult * a.fornecedor.localeCompare(b.fornecedor)
+        case 'motivo': return mult * a.motivo.localeCompare(b.motivo)
         case 'quantidade': return mult * (a.quantidade - b.quantidade)
         case 'total': return mult * ((a.total ?? 0) - (b.total ?? 0))
         case 'status': return mult * a.status.localeCompare(b.status)
@@ -246,7 +255,8 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
                     { id: 'tipo', label: 'Tipo' },
                     { id: 'data', label: 'Data' },
                     { id: 'produto', label: 'Produto' },
-                    { id: 'anotacao', label: 'Fornecedor / Motivo' },
+                    { id: 'fornecedor', label: 'Fornecedor' },
+                    { id: 'motivo', label: 'Motivo' },
                     { id: 'quantidade', label: 'Qtd.' },
                     { id: 'total', label: 'Total' },
                     { id: 'status', label: 'Status' },
@@ -299,7 +309,7 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
             <tbody>
               {itensPagina.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center text-gray-500 text-sm">
+                  <td colSpan={8} className="py-16 text-center text-gray-500 text-sm">
                     Nenhum registro encontrado.
                   </td>
                 </tr>
@@ -324,7 +334,8 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
                       {formatarData(r.data)}
                     </td>
                     <td className="px-5 py-3.5 text-white font-medium whitespace-nowrap">{r.produto}</td>
-                    <td className="px-5 py-3.5 text-gray-400 whitespace-nowrap">{r.anotacao}</td>
+                    <td className="px-5 py-3.5 text-gray-400 whitespace-nowrap">{r.fornecedor}</td>
+                    <td className="px-5 py-3.5 text-gray-400 whitespace-nowrap">{r.motivo}</td>
                     <td className="px-5 py-3.5 text-gray-300">{r.quantidade.toLocaleString('pt-BR')}</td>
                     <td className="px-5 py-3.5 text-white font-semibold">
                       {r.total
@@ -409,7 +420,8 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               {filtroPopover.col === 'data' && 'Filtrar por data'}
               {filtroPopover.col === 'produto' && 'Filtrar produto'}
-              {filtroPopover.col === 'anotacao' && 'Filtrar fornecedor / motivo'}
+              {filtroPopover.col === 'fornecedor' && 'Filtrar fornecedor'}
+              {filtroPopover.col === 'motivo' && 'Filtrar motivo'}
               {filtroPopover.col === 'status' && 'Filtrar status'}
             </span>
             <div className="flex gap-1">
@@ -466,12 +478,23 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
             />
           )}
 
-          {filtroPopover.col === 'anotacao' && (
+          {filtroPopover.col === 'fornecedor' && (
             <input
               type="text"
-              value={filtros.anotacao}
-              onChange={(e) => atualizar('anotacao', e.target.value)}
-              placeholder="Buscar fornecedor / motivo..."
+              value={filtros.fornecedor}
+              onChange={(e) => atualizar('fornecedor', e.target.value)}
+              placeholder="Buscar fornecedor..."
+              className={inputCls}
+              autoFocus
+            />
+          )}
+
+          {filtroPopover.col === 'motivo' && (
+            <input
+              type="text"
+              value={filtros.motivo}
+              onChange={(e) => atualizar('motivo', e.target.value)}
+              placeholder="Buscar motivo..."
               className={inputCls}
               autoFocus
             />
