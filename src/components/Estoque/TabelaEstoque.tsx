@@ -163,7 +163,7 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
   const { mostrarToast } = useToast()
   const [produtoEditando, setProdutoEditando] = useState<ProdutoComEstoque | null>(null)
   const [excluindo, setExcluindo] = useState<string | null>(null)
-  const [filtros, setFiltros] = useState<FiltrosType>({ busca: '', categoria: '', status: 'todos', medida: '', cor: '' })
+  const [filtros, setFiltros] = useState<FiltrosType>({ busca: '', categoria: '', status: 'todos', medida: '', cor: '', fornecedor: '' })
 
   // Extrai categorias únicas
   const categorias = useMemo(
@@ -174,6 +174,12 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
   // Extrai todas as cores cadastradas no estoque (filtro independente)
   const coresDisponiveis = useMemo(
     () => [...new Set(produtos.map((p) => p.cor).filter(Boolean) as string[])].sort(),
+    [produtos]
+  )
+
+  // Extrai os fornecedores presentes nos produtos
+  const fornecedoresDisponiveis = useMemo(
+    () => [...new Set(produtos.map((p) => p.fornecedor?.nome).filter(Boolean) as string[])].sort(),
     [produtos]
   )
 
@@ -188,7 +194,8 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
       const statusOk = filtros.status === 'todos' || p.status === filtros.status
       const medidaOk = !filtros.medida || (p.unidade ?? '').toUpperCase() === filtros.medida.toUpperCase()
       const corOk = !filtros.cor || (p.cor ?? '').toLowerCase() === filtros.cor.toLowerCase()
-      return buscaOk && categoriaOk && statusOk && medidaOk && corOk
+      const fornecedorOk = !filtros.fornecedor || p.fornecedor?.nome === filtros.fornecedor
+      return buscaOk && categoriaOk && statusOk && medidaOk && corOk && fornecedorOk
     })
   }, [produtos, filtros])
 
@@ -235,7 +242,7 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
       )}
 
       <div className="space-y-4">
-        <FiltrosEstoque filtros={filtros} categorias={categorias} coresDisponiveis={coresDisponiveis} onChange={setFiltros} />
+        <FiltrosEstoque filtros={filtros} categorias={categorias} coresDisponiveis={coresDisponiveis} fornecedoresDisponiveis={fornecedoresDisponiveis} onChange={setFiltros} />
 
         <div className="bg-dark-card border border-dark-border rounded-xl overflow-hidden">
           {produtosFiltrados.length === 0 ? (

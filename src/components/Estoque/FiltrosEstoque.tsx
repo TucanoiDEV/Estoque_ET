@@ -5,6 +5,7 @@ interface Props {
   filtros: FiltrosEstoque
   categorias: string[]
   coresDisponiveis: string[]
+  fornecedoresDisponiveis: string[]
   onChange: (filtros: FiltrosEstoque) => void
 }
 
@@ -24,7 +25,7 @@ const medidas = [
   { value: 'M', label: 'Metro (M)' },
 ]
 
-export function FiltrosEstoque({ filtros, categorias, coresDisponiveis, onChange }: Props) {
+export function FiltrosEstoque({ filtros, categorias, coresDisponiveis, fornecedoresDisponiveis, onChange }: Props) {
   function set(parcial: Partial<FiltrosEstoque>) {
     onChange({ ...filtros, ...parcial })
   }
@@ -88,6 +89,22 @@ export function FiltrosEstoque({ filtros, categorias, coresDisponiveis, onChange
           {categorias.map((cat) => (
             <option key={cat} value={cat} className="bg-dark-card text-gray-100">
               {cat}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {/* Filtro por fornecedor */}
+      {fornecedoresDisponiveis.length > 0 && (
+        <select
+          value={filtros.fornecedor}
+          onChange={(e) => set({ fornecedor: e.target.value })}
+          className="bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-brand-blue transition-colors"
+        >
+          <option value="" className="bg-dark-card text-gray-100">Todos os fornecedores</option>
+          {fornecedoresDisponiveis.map((forn) => (
+            <option key={forn} value={forn} className="bg-dark-card text-gray-100">
+              {forn}
             </option>
           ))}
         </select>

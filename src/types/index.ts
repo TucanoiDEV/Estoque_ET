@@ -162,4 +162,5 @@ export interface FiltrosEstoque {
   status: StatusEstoque | 'todos'
   medida: string
   cor: string
+  fornecedor: string
 }
