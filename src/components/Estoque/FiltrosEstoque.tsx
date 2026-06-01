@@ -29,7 +29,9 @@ export function FiltrosEstoque({ filtros, categorias, coresDisponiveis, onChange
     onChange({ ...filtros, ...parcial })
   }
 
-  const mostrarFiltroCor = coresDisponiveis.length > 0
+  // O filtro de cor só faz sentido para lonas — aparece apenas quando a categoria "Lona" está selecionada
+  const categoriaEhLona = filtros.categoria.toLowerCase() === 'lona'
+  const mostrarFiltroCor = categoriaEhLona && coresDisponiveis.length > 0
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -74,19 +76,24 @@ export function FiltrosEstoque({ filtros, categorias, coresDisponiveis, onChange
       {categorias.length > 0 && (
         <select
           value={filtros.categoria}
-          onChange={(e) => set({ categoria: e.target.value })}
+          onChange={(e) => {
+            const categoria = e.target.value
+            // Ao sair da categoria "Lona", limpa o filtro de cor para não filtrar a tabela com o controle oculto
+            const corLimpa = categoria.toLowerCase() === 'lona' ? {} : { cor: '' }
+            set({ categoria, ...corLimpa })
+          }}
           className="bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-brand-blue transition-colors"
         >
-          <option value="">Todas as categorias</option>
+          <option value="" className="bg-dark-card text-gray-100">Todas as categorias</option>
           {categorias.map((cat) => (
-            <option key={cat} value={cat}>
+            <option key={cat} value={cat} className="bg-dark-card text-gray-100">
               {cat}
             </option>
           ))}
         </select>
       )}
 
-      {/* Filtro por cor — aparece quando a categoria selecionada tem cores cadastradas */}
+      {/* Filtro por cor — aparece apenas quando a categoria "Lona" está selecionada */}
       {mostrarFiltroCor && (
         <div className="flex items-center gap-1.5 bg-dark-card border border-dark-border rounded-lg px-3 py-2">
           <IconTag size={14} className="text-gray-500 shrink-0" />
@@ -95,9 +102,9 @@ export function FiltrosEstoque({ filtros, categorias, coresDisponiveis, onChange
             onChange={(e) => set({ cor: e.target.value })}
             className="bg-transparent text-sm text-gray-300 focus:outline-none"
           >
-            <option value="">Todas as cores</option>
+            <option value="" className="bg-dark-card text-gray-100">Todas as cores</option>
             {coresDisponiveis.map((cor) => (
-              <option key={cor} value={cor}>
+              <option key={cor} value={cor} className="bg-dark-card text-gray-100">
                 {cor}
               </option>
             ))}
@@ -112,7 +119,7 @@ export function FiltrosEstoque({ filtros, categorias, coresDisponiveis, onChange
         className="bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-brand-blue transition-colors"
       >
         {medidas.map((m) => (
-          <option key={m.value} value={m.value}>
+          <option key={m.value} value={m.value} className="bg-dark-card text-gray-100">
             {m.label}
           </option>
         ))}

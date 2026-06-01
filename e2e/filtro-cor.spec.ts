@@ -12,11 +12,16 @@ async function abrirEstoque(page: Page) {
   await expect(page.getByRole('heading', { name: 'Estoque' })).toBeVisible()
 }
 
-test('Estoque: filtro por cor é independente e filtra a tabela', async ({ page }) => {
+test('Estoque: filtro por cor só aparece na categoria Lona e filtra a tabela', async ({ page }) => {
   await abrirEstoque(page)
 
-  // O filtro de cor aparece sem precisar escolher categoria
+  // Sem categoria selecionada, o filtro de cor fica oculto
   const filtroCor = page.locator('select').filter({ hasText: 'Todas as cores' })
+  await expect(filtroCor).toHaveCount(0)
+
+  // Ao escolher a categoria "Lona", o filtro de cor aparece
+  const filtroCategoria = page.locator('select').filter({ hasText: 'Todas as categorias' })
+  await filtroCategoria.selectOption('Lona')
   await expect(filtroCor).toBeVisible()
 
   // Filtra por "Azul"
@@ -29,4 +34,8 @@ test('Estoque: filtro por cor é independente e filtra a tabela', async ({ page 
   // Volta para todas as cores
   await filtroCor.selectOption('')
   await expect(page.getByRole('cell', { name: 'Lona Sombrite Preta 50%' })).toBeVisible()
+
+  // Ao sair da categoria Lona, o filtro de cor some
+  await filtroCategoria.selectOption('')
+  await expect(filtroCor).toHaveCount(0)
 })
