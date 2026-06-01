@@ -184,7 +184,7 @@ function AppLayout() {
                   <h1 className="text-2xl font-bold text-white">Estoque</h1>
                   <p className="text-sm text-gray-500 mt-0.5">Gerencie seus produtos e quantidades</p>
                 </div>
-                <TabelaEstoque produtos={produtos} loading={loading} onRecarregar={recarregar} />
+                <TabelaEstoque produtos={produtos} fornecedores={fornecedores} loading={loading} onRecarregar={recarregar} />
               </div>
             )}
 

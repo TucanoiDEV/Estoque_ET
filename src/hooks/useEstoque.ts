@@ -56,7 +56,9 @@ export function useEstoque() {
         updated_at,
         produto:produto_id (
           id, codigo, nome, categoria, unidade, cor,
-          custo_unitario, estoque_minimo, local_armazenamento, created_at
+          custo_unitario, estoque_minimo, local_armazenamento, created_at,
+          fornecedor_id,
+          fornecedor:fornecedor_id (id, nome)
         )
       `)
 

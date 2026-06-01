@@ -74,6 +74,7 @@ const inputCls =
   'w-full text-xs bg-dark-bg border border-dark-border rounded px-2 py-1.5 text-gray-300 placeholder-gray-600 focus:outline-none focus:border-brand-blue/50'
 
 const COLUNAS_FILTRAVELIS: ColOrdem[] = ['data', 'produto', 'fornecedor', 'motivo']
+const COLUNAS_ORDENAVEIS: ColOrdem[] = ['data', 'fornecedor', 'quantidade', 'total']
 
 export function HistoricoTab({ entradas, saidas, produtos, loading }: Props) {
   const [filtros, setFiltros] = useState<Filtros>({
@@ -137,13 +138,20 @@ export function HistoricoTab({ entradas, saidas, produtos, loading }: Props) {
   }
 
   const registros: RegistroUnificado[] = useMemo(() => {
+    // Fornecedor por produto (a partir do cadastro do produto) — usado como
+    // fallback nas entradas/saídas, cujo registro pode não ter fornecedor próprio
+    const fornecedorPorProduto = new Map<string, string>()
+    produtos.forEach((p) => {
+      if (p.fornecedor?.nome) fornecedorPorProduto.set(p.id, p.fornecedor.nome)
+    })
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const e: RegistroUnificado[] = entradas.map((en) => ({
       id: en.id,
       tipo: 'entrada' as const,
       data: en.data_recebimento.slice(0, 10),
       produto: (en.produto as any)?.nome ?? '—',
-      fornecedor: (en.fornecedor as any)?.nome ?? '—',
+      fornecedor: (en.fornecedor as any)?.nome ?? fornecedorPorProduto.get(en.produto_id) ?? '—',
       motivo: '—',
       quantidade: en.quantidade,
       total: en.total,
@@ -154,7 +162,7 @@ export function HistoricoTab({ entradas, saidas, produtos, loading }: Props) {
       tipo: 'saida' as const,
       data: sa.data_saida.slice(0, 10),
       produto: (sa.produto as any)?.nome ?? '—',
-      fornecedor: '—',
+      fornecedor: fornecedorPorProduto.get(sa.produto_id) ?? '—',
       motivo: sa.motivo ?? '—',
       quantidade: sa.quantidade,
       total: sa.total ?? null,
@@ -164,7 +172,7 @@ export function HistoricoTab({ entradas, saidas, produtos, loading }: Props) {
       tipo: 'cadastro' as const,
       data: p.created_at.slice(0, 10),
       produto: p.nome,
-      fornecedor: '—',
+      fornecedor: p.fornecedor?.nome ?? '—',
       motivo: '—',
       quantidade: null,
       total: null,
@@ -172,14 +180,24 @@ export function HistoricoTab({ entradas, saidas, produtos, loading }: Props) {
     return [...e, ...s, ...c].sort((a, b) => b.data.localeCompare(a.data))
   }, [entradas, saidas, produtos])
 
+  // Opções distintas para os filtros suspensos (ignora o placeholder "—")
+  const fornecedoresDisponiveis = useMemo(
+    () => [...new Set(registros.map((r) => r.fornecedor).filter((f) => f && f !== '—'))].sort(),
+    [registros]
+  )
+  const motivosDisponiveis = useMemo(
+    () => [...new Set(registros.map((r) => r.motivo).filter((m) => m && m !== '—'))].sort(),
+    [registros]
+  )
+
   const filtrados = useMemo(() => {
     const lista = registros.filter((r) => {
       if (filtros.tipo !== 'todos' && r.tipo !== filtros.tipo) return false
       if (filtros.dataInicio && r.data < filtros.dataInicio) return false
       if (filtros.dataFim && r.data > filtros.dataFim) return false
       if (filtros.produto && !r.produto.toLowerCase().includes(filtros.produto.toLowerCase())) return false
-      if (filtros.fornecedor && !r.fornecedor.toLowerCase().includes(filtros.fornecedor.toLowerCase())) return false
-      if (filtros.motivo && !r.motivo.toLowerCase().includes(filtros.motivo.toLowerCase())) return false
+      if (filtros.fornecedor && r.fornecedor !== filtros.fornecedor) return false
+      if (filtros.motivo && r.motivo !== filtros.motivo) return false
       return true
     })
 
@@ -268,6 +286,7 @@ export function HistoricoTab({ entradas, saidas, produtos, loading }: Props) {
                   ] as { id: ColOrdem; label: string }[]
                 ).map(({ id, label }) => {
                   const ativo = ordemCol === id
+                  const ordenavel = COLUNAS_ORDENAVEIS.includes(id)
                   const filtravel = COLUNAS_FILTRAVELIS.includes(id)
                   const filtroAtivo = temFiltroAtivo(id)
                   const popoverAberto = filtroPopover?.col === id
@@ -275,23 +294,29 @@ export function HistoricoTab({ entradas, saidas, produtos, loading }: Props) {
                   return (
                     <th key={id} className="px-5 py-3 text-left whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => ordenarPor(id)}
-                          className={`flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors ${
-                            ativo ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'
-                          }`}
-                        >
-                          {label}
-                          {ativo ? (
-                            ordemDir === 'asc' ? (
-                              <IconArrowUp size={12} />
+                        {ordenavel ? (
+                          <button
+                            onClick={() => ordenarPor(id)}
+                            className={`flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                              ativo ? 'text-brand-blue' : 'text-gray-500 hover:text-gray-300'
+                            }`}
+                          >
+                            {label}
+                            {ativo ? (
+                              ordemDir === 'asc' ? (
+                                <IconArrowUp size={12} />
+                              ) : (
+                                <IconArrowDown size={12} />
+                              )
                             ) : (
-                              <IconArrowDown size={12} />
-                            )
-                          ) : (
-                            <IconArrowsSort size={12} className="opacity-40" />
-                          )}
-                        </button>
+                              <IconArrowsSort size={12} className="opacity-40" />
+                            )}
+                          </button>
+                        ) : (
+                          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                            {label}
+                          </span>
+                        )}
                         {filtravel && (
                           <button
                             onClick={(e) => abrirFiltro(e, id)}
@@ -470,25 +495,31 @@ export function HistoricoTab({ entradas, saidas, produtos, loading }: Props) {
           )}
 
           {filtroPopover.col === 'fornecedor' && (
-            <input
-              type="text"
+            <select
               value={filtros.fornecedor}
               onChange={(e) => atualizar('fornecedor', e.target.value)}
-              placeholder="Buscar fornecedor..."
               className={inputCls}
               autoFocus
-            />
+            >
+              <option value="">Todos</option>
+              {fornecedoresDisponiveis.map((f) => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
           )}
 
           {filtroPopover.col === 'motivo' && (
-            <input
-              type="text"
+            <select
               value={filtros.motivo}
               onChange={(e) => atualizar('motivo', e.target.value)}
-              placeholder="Buscar motivo..."
               className={inputCls}
               autoFocus
-            />
+            >
+              <option value="">Todos</option>
+              {motivosDisponiveis.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
           )}
         </div>
       )}

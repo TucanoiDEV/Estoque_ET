@@ -25,7 +25,9 @@ export interface Produto {
   custo_unitario: number | null
   estoque_minimo: number
   local_armazenamento: string | null
+  fornecedor_id: string | null
   created_at: string
+  fornecedor?: Fornecedor | null
 }
 
 export interface EstoqueItem {

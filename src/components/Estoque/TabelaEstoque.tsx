@@ -5,10 +5,11 @@ import { usePermissions } from '../../hooks/usePermissions'
 import { useToast } from '../shared/Toast'
 import { sanitizarNumero, paraNumero } from '../../utils/numero'
 import { FiltrosEstoque } from './FiltrosEstoque'
-import type { ProdutoComEstoque, StatusEstoque, FiltrosEstoque as FiltrosType } from '../../types'
+import type { ProdutoComEstoque, StatusEstoque, Fornecedor, FiltrosEstoque as FiltrosType } from '../../types'
 
 interface Props {
   produtos: ProdutoComEstoque[]
+  fornecedores: Fornecedor[]
   loading: boolean
   onRecarregar: () => void
 }
@@ -35,14 +36,16 @@ const badgeStatus: Record<StatusEstoque, { classes: string; label: string }> = {
 
 interface ModalEdicaoProps {
   produto: ProdutoComEstoque
+  fornecedores: Fornecedor[]
   onFechar: () => void
   onSalvar: () => void
 }
 
-function ModalEdicao({ produto, onFechar, onSalvar }: ModalEdicaoProps) {
+function ModalEdicao({ produto, fornecedores, onFechar, onSalvar }: ModalEdicaoProps) {
   const { mostrarToast } = useToast()
   const [nome, setNome] = useState(produto.nome)
   const [categoria, setCategoria] = useState(produto.categoria ?? '')
+  const [fornecedorId, setFornecedorId] = useState(produto.fornecedor_id ?? '')
   const [estoqueMinimo, setEstoqueMinimo] = useState(String(produto.estoque_minimo))
   const [custoUnitario, setCustoUnitario] = useState(produto.custo_unitario != null ? String(produto.custo_unitario) : '')
   const [salvando, setSalvando] = useState(false)
@@ -52,6 +55,7 @@ function ModalEdicao({ produto, onFechar, onSalvar }: ModalEdicaoProps) {
     const { error } = await db.produtos().update({
       nome,
       categoria,
+      fornecedor_id: fornecedorId || null,
       estoque_minimo: paraNumero(estoqueMinimo),
       custo_unitario: paraNumero(custoUnitario) || null,
     }).eq('id', produto.id)
@@ -94,6 +98,19 @@ function ModalEdicao({ produto, onFechar, onSalvar }: ModalEdicaoProps) {
               onChange={(e) => setCategoria(e.target.value)}
               className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue"
             />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Fornecedor</label>
+            <select
+              value={fornecedorId}
+              onChange={(e) => setFornecedorId(e.target.value)}
+              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue"
+            >
+              <option value="">Sem fornecedor</option>
+              {fornecedores.map((f) => (
+                <option key={f.id} value={f.id}>{f.nome}</option>
+              ))}
+            </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -141,7 +158,7 @@ function ModalEdicao({ produto, onFechar, onSalvar }: ModalEdicaoProps) {
   )
 }
 
-export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
+export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }: Props) {
   const { canEdit, canDelete } = usePermissions()
   const { mostrarToast } = useToast()
   const [produtoEditando, setProdutoEditando] = useState<ProdutoComEstoque | null>(null)
@@ -211,6 +228,7 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
       {produtoEditando && (
         <ModalEdicao
           produto={produtoEditando}
+          fornecedores={fornecedores}
           onFechar={() => setProdutoEditando(null)}
           onSalvar={() => { setProdutoEditando(null); onRecarregar() }}
         />
@@ -230,7 +248,7 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
               <table className="w-full text-sm">
                 <thead className="sticky top-0 z-10 bg-dark-card">
                   <tr className="border-b border-dark-border">
-                    {['Código', 'Produto', 'Categoria', 'Medida', 'Cor', 'Qtd.', 'Mínimo', 'Custo', 'Status', ''].map((col) => (
+                    {['Código', 'Produto', 'Categoria', 'Fornecedor', 'Medida', 'Cor', 'Qtd.', 'Mínimo', 'Custo', 'Status', ''].map((col) => (
                       <th
                         key={col}
                         className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap"
@@ -251,6 +269,7 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
                         <td className="px-5 py-3.5 font-mono text-xs text-gray-400">{produto.codigo}</td>
                         <td className="px-5 py-3.5 font-medium text-white">{produto.nome}</td>
                         <td className="px-5 py-3.5 text-gray-400">{produto.categoria ?? '—'}</td>
+                        <td className="px-5 py-3.5 text-gray-400 whitespace-nowrap">{produto.fornecedor?.nome ?? '—'}</td>
                         <td className="px-5 py-3.5">
                           <span className="inline-block px-2 py-0.5 rounded-md text-xs font-semibold bg-dark-hover text-gray-300 uppercase">
                             {produto.unidade || '—'}

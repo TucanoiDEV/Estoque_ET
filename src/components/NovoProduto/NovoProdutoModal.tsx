@@ -7,6 +7,7 @@ import { useLista } from '../../hooks/useLista'
 import { useCategorias } from '../../hooks/useCategorias'
 import { SelectComAdicionar, type Opcao } from '../shared/SelectComAdicionar'
 import { CORES_PADRAO } from '../../utils/listasPadrao'
+import type { Fornecedor } from '../../types'
 
 interface Props {
   onFechar: () => void
@@ -19,6 +20,7 @@ interface FormProduto {
   categoria: string
   unidade: string
   cor: string
+  fornecedor_id: string
   custo_unitario: string
   estoque_minimo: string
   quantidade_inicial: string
@@ -60,6 +62,7 @@ const FORM_INICIAL: FormProduto = {
   categoria: '',
   unidade: 'UN',
   cor: '',
+  fornecedor_id: '',
   custo_unitario: '',
   estoque_minimo: '',
   quantidade_inicial: '',
@@ -80,12 +83,16 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
   // Categorias: lista oficial do banco (mesma das Configurações) + as já usadas em produtos
   const categorias = useCategorias()
   const [categoriasExistentes, setCategoriasExistentes] = useState<string[]>([])
+  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([])
   useEffect(() => {
     async function carregar() {
       const { data } = await db.produtos().select('categoria')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const distintas = [...new Set((data ?? []).map((p: any) => p.categoria).filter(Boolean))] as string[]
       setCategoriasExistentes(distintas)
+
+      const { data: forn } = await db.fornecedores().select('id, nome').order('nome')
+      setFornecedores((forn as Fornecedor[]) ?? [])
     }
     carregar()
   }, [])
@@ -135,6 +142,7 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
           categoria: form.categoria.trim() || null,
           unidade: form.unidade,
           cor: form.cor.trim() || null,
+          fornecedor_id: form.fornecedor_id || null,
           custo_unitario: paraNumero(form.custo_unitario) || null,
           estoque_minimo: paraNumero(form.estoque_minimo),
           local_armazenamento: form.local_armazenamento || null,
@@ -254,6 +262,21 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
               onAdicionar={(texto) => { cores.adicionar(texto); return texto }}
               placeholderNovo="Nova cor (ex.: Laranja)"
             />
+          </div>
+
+          {/* Fornecedor */}
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">Fornecedor</label>
+            <select
+              value={form.fornecedor_id}
+              onChange={(e) => set('fornecedor_id', e.target.value)}
+              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors"
+            >
+              <option value="">Sem fornecedor</option>
+              {fornecedores.map((f) => (
+                <option key={f.id} value={f.id}>{f.nome}</option>
+              ))}
+            </select>
           </div>
 
           {/* Custo unit. + Estoque mínimo */}
