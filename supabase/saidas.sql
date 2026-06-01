@@ -5,15 +5,21 @@
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS public.saidas (
-  id           UUID    DEFAULT gen_random_uuid() PRIMARY KEY,
-  produto_id   UUID    REFERENCES public.produtos(id) ON DELETE CASCADE,
-  usuario_id   UUID    REFERENCES public.usuarios(id),
-  quantidade   INTEGER NOT NULL,
-  motivo       TEXT,
-  observacoes  TEXT,
-  data_saida   DATE    DEFAULT CURRENT_DATE,
-  created_at   TIMESTAMPTZ DEFAULT NOW()
+  id             UUID          DEFAULT gen_random_uuid() PRIMARY KEY,
+  produto_id     UUID          REFERENCES public.produtos(id) ON DELETE CASCADE,
+  usuario_id     UUID          REFERENCES public.usuarios(id),
+  quantidade     INTEGER       NOT NULL,
+  custo_unitario NUMERIC(12,2),
+  total          NUMERIC(12,2),
+  motivo         TEXT,
+  observacoes    TEXT,
+  data_saida     DATE          DEFAULT CURRENT_DATE,
+  created_at     TIMESTAMPTZ   DEFAULT NOW()
 );
+
+-- ─── Colunas de custo (para bancos criados antes desta versão) ─────────────────
+ALTER TABLE public.saidas ADD COLUMN IF NOT EXISTS custo_unitario NUMERIC(12,2);
+ALTER TABLE public.saidas ADD COLUMN IF NOT EXISTS total          NUMERIC(12,2);
 
 -- ─── RLS ──────────────────────────────────────────────────────────────────────
 ALTER TABLE public.saidas ENABLE ROW LEVEL SECURITY;

@@ -20,6 +20,7 @@ interface ProdutoComEstoque extends Produto {
 interface FormSaida {
   produto_id: string
   quantidade: string
+  custo_unitario: string
   motivo: string
   observacoes: string
   data_saida: string
@@ -39,6 +40,7 @@ const MOTIVOS = [
 const FORM_INICIAL: FormSaida = {
   produto_id: '',
   quantidade: '1',
+  custo_unitario: '',
   motivo: 'Consumo interno',
   observacoes: '',
   data_saida: format(new Date(), 'yyyy-MM-dd'),
@@ -75,9 +77,21 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
     if (erros[campo]) setErros((prev) => ({ ...prev, [campo]: undefined }))
   }
 
+  // Preenche o custo ao selecionar o produto (usa o custo cadastrado, mas permanece editável)
+  function selecionarProduto(produtoId: string) {
+    const produto = produtos.find((p) => p.id === produtoId)
+    setForm((prev) => ({
+      ...prev,
+      produto_id: produtoId,
+      custo_unitario: produto?.custo_unitario != null ? String(produto.custo_unitario) : prev.custo_unitario,
+    }))
+    if (erros.produto_id) setErros((prev) => ({ ...prev, produto_id: undefined }))
+  }
+
   const produtoSelecionado = produtos.find((p) => p.id === form.produto_id)
   const quantidadeNum = paraNumero(form.quantidade)
   const estoqueApos = produtoSelecionado ? produtoSelecionado.quantidade_atual - quantidadeNum : 0
+  const total = quantidadeNum * paraNumero(form.custo_unitario)
 
   function validar(): boolean {
     const novosErros: typeof erros = {}
@@ -86,6 +100,7 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
     if (produtoSelecionado && quantidadeNum > produtoSelecionado.quantidade_atual) {
       novosErros.quantidade = `Máximo disponível: ${produtoSelecionado.quantidade_atual} ${produtoSelecionado.unidade}`
     }
+    if (paraNumero(form.custo_unitario) < 0) novosErros.custo_unitario = 'Custo não pode ser negativo'
     if (!form.data_saida) novosErros.data_saida = 'Informe a data'
     setErros(novosErros)
     return Object.keys(novosErros).length === 0
@@ -108,6 +123,8 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
         produto_id: produtoSelecionado.id,
         usuario_id: usuario?.id ?? null,
         quantidade: quantidadeNum,
+        custo_unitario: paraNumero(form.custo_unitario) || null,
+        total: total || null,
         motivo: form.motivo || null,
         observacoes: form.observacoes || null,
         data_saida: form.data_saida,
@@ -154,7 +171,7 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
             </label>
             <select
               value={form.produto_id}
-              onChange={(e) => set('produto_id', e.target.value)}
+              onChange={(e) => selecionarProduto(e.target.value)}
               className={`w-full bg-dark-bg border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors ${
                 erros.produto_id ? 'border-brand-red' : 'border-dark-border'
               }`}
@@ -180,7 +197,7 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
             </div>
           )}
 
-          {/* Quantidade + Data */}
+          {/* Quantidade + Custo */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">
@@ -198,6 +215,32 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
               {erros.quantidade && <p className="text-xs text-brand-red mt-1">{erros.quantidade}</p>}
             </div>
             <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Custo unitário (R$)</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={form.custo_unitario}
+                onChange={(e) => set('custo_unitario', sanitizarNumero(e.target.value, true))}
+                placeholder="0,00"
+                className={`w-full bg-dark-bg border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors ${
+                  erros.custo_unitario ? 'border-brand-red' : 'border-dark-border'
+                }`}
+              />
+              {erros.custo_unitario && <p className="text-xs text-brand-red mt-1">{erros.custo_unitario}</p>}
+            </div>
+          </div>
+
+          {/* Total calculado */}
+          <div className="bg-dark-hover border border-dark-border rounded-lg px-4 py-3 flex items-center justify-between">
+            <span className="text-xs text-gray-400 font-medium">Total da saída</span>
+            <span className="text-lg font-bold text-brand-green">
+              {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </span>
+          </div>
+
+          {/* Data + Motivo */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">
                 Data da saída <span className="text-brand-red">*</span>
               </label>
@@ -208,20 +251,18 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
                 className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors"
               />
             </div>
-          </div>
-
-          {/* Motivo */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Motivo da saída</label>
-            <select
-              value={form.motivo}
-              onChange={(e) => set('motivo', e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors"
-            >
-              {MOTIVOS.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Motivo da saída</label>
+              <select
+                value={form.motivo}
+                onChange={(e) => set('motivo', e.target.value)}
+                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors"
+              >
+                {MOTIVOS.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Observações */}

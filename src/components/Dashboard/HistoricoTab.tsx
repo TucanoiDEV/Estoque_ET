@@ -9,37 +9,38 @@ import {
   IconX,
 } from '@tabler/icons-react'
 import { formatarData } from '../../utils/data'
-import type { Entrada, Saida } from '../../types'
+import type { Entrada, Produto, Saida } from '../../types'
 
 interface Props {
   entradas: Entrada[]
   saidas: Saida[]
+  produtos: Produto[]
   loading: boolean
 }
 
+type TipoRegistro = 'entrada' | 'saida' | 'cadastro'
+
 interface RegistroUnificado {
   id: string
-  tipo: 'entrada' | 'saida'
+  tipo: TipoRegistro
   data: string
   produto: string
   fornecedor: string
   motivo: string
-  quantidade: number
+  quantidade: number | null
   total: number | null
-  status: string
 }
 
 interface Filtros {
-  tipo: 'todos' | 'entrada' | 'saida'
+  tipo: 'todos' | TipoRegistro
   dataInicio: string
   dataFim: string
   produto: string
   fornecedor: string
   motivo: string
-  status: string
 }
 
-type ColOrdem = 'tipo' | 'data' | 'produto' | 'fornecedor' | 'motivo' | 'quantidade' | 'total' | 'status'
+type ColOrdem = 'tipo' | 'data' | 'produto' | 'fornecedor' | 'motivo' | 'quantidade' | 'total'
 type DirOrdem = 'asc' | 'desc'
 
 interface FiltroPopover {
@@ -50,24 +51,31 @@ interface FiltroPopover {
 
 const ITENS_POR_PAGINA = 10
 
-const badgeStatus: Record<string, string> = {
-  recebido: 'bg-brand-green/15 text-brand-green',
-  aguardando: 'bg-yellow-500/15 text-yellow-400',
-  cancelado: 'bg-brand-red/15 text-brand-red',
+const badgeTipo: Record<TipoRegistro, string> = {
+  entrada: 'bg-brand-green/15 text-brand-green',
+  saida: 'bg-brand-red/15 text-brand-red',
+  cadastro: 'bg-brand-purple/15 text-brand-purple',
 }
 
-const labelStatus: Record<string, string> = {
-  recebido: 'Recebido',
-  aguardando: 'Aguardando',
-  cancelado: 'Cancelado',
+const labelTipo: Record<TipoRegistro, string> = {
+  entrada: 'Entrada',
+  saida: 'Saída',
+  cadastro: 'Cadastro',
+}
+
+const corFiltroTipo: Record<Filtros['tipo'], string> = {
+  todos: 'bg-brand-blue/20 text-brand-blue',
+  entrada: 'bg-brand-green/20 text-brand-green',
+  saida: 'bg-brand-red/20 text-brand-red',
+  cadastro: 'bg-brand-purple/20 text-brand-purple',
 }
 
 const inputCls =
   'w-full text-xs bg-dark-bg border border-dark-border rounded px-2 py-1.5 text-gray-300 placeholder-gray-600 focus:outline-none focus:border-brand-blue/50'
 
-const COLUNAS_FILTRAVELIS: ColOrdem[] = ['data', 'produto', 'fornecedor', 'motivo', 'status']
+const COLUNAS_FILTRAVELIS: ColOrdem[] = ['data', 'produto', 'fornecedor', 'motivo']
 
-export function HistoricoTab({ entradas, saidas, loading }: Props) {
+export function HistoricoTab({ entradas, saidas, produtos, loading }: Props) {
   const [filtros, setFiltros] = useState<Filtros>({
     tipo: 'todos',
     dataInicio: '',
@@ -75,7 +83,6 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
     produto: '',
     fornecedor: '',
     motivo: '',
-    status: '',
   })
   const [ordemCol, setOrdemCol] = useState<ColOrdem>('data')
   const [ordemDir, setOrdemDir] = useState<DirOrdem>('desc')
@@ -113,7 +120,6 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
       case 'produto': return !!filtros.produto
       case 'fornecedor': return !!filtros.fornecedor
       case 'motivo': return !!filtros.motivo
-      case 'status': return !!filtros.status
       default: return false
     }
   }
@@ -127,7 +133,6 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
       case 'produto': atualizar('produto', ''); break
       case 'fornecedor': atualizar('fornecedor', ''); break
       case 'motivo': atualizar('motivo', ''); break
-      case 'status': atualizar('status', ''); break
     }
   }
 
@@ -142,7 +147,6 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
       motivo: '—',
       quantidade: en.quantidade,
       total: en.total,
-      status: en.status,
     }))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const s: RegistroUnificado[] = saidas.map((sa) => ({
@@ -153,11 +157,20 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
       fornecedor: '—',
       motivo: sa.motivo ?? '—',
       quantidade: sa.quantidade,
-      total: null,
-      status: '',
+      total: sa.total ?? null,
     }))
-    return [...e, ...s].sort((a, b) => b.data.localeCompare(a.data))
-  }, [entradas, saidas])
+    const c: RegistroUnificado[] = produtos.map((p) => ({
+      id: p.id,
+      tipo: 'cadastro' as const,
+      data: p.created_at.slice(0, 10),
+      produto: p.nome,
+      fornecedor: '—',
+      motivo: '—',
+      quantidade: null,
+      total: null,
+    }))
+    return [...e, ...s, ...c].sort((a, b) => b.data.localeCompare(a.data))
+  }, [entradas, saidas, produtos])
 
   const filtrados = useMemo(() => {
     const lista = registros.filter((r) => {
@@ -167,9 +180,6 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
       if (filtros.produto && !r.produto.toLowerCase().includes(filtros.produto.toLowerCase())) return false
       if (filtros.fornecedor && !r.fornecedor.toLowerCase().includes(filtros.fornecedor.toLowerCase())) return false
       if (filtros.motivo && !r.motivo.toLowerCase().includes(filtros.motivo.toLowerCase())) return false
-      if (filtros.status) {
-        if (r.tipo === 'saida' || r.status !== filtros.status) return false
-      }
       return true
     })
 
@@ -181,9 +191,8 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
         case 'produto': return mult * a.produto.localeCompare(b.produto)
         case 'fornecedor': return mult * a.fornecedor.localeCompare(b.fornecedor)
         case 'motivo': return mult * a.motivo.localeCompare(b.motivo)
-        case 'quantidade': return mult * (a.quantidade - b.quantidade)
+        case 'quantidade': return mult * ((a.quantidade ?? 0) - (b.quantidade ?? 0))
         case 'total': return mult * ((a.total ?? 0) - (b.total ?? 0))
-        case 'status': return mult * a.status.localeCompare(b.status)
         default: return 0
       }
     })
@@ -225,6 +234,7 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
                 { id: 'todos', label: 'Todos' },
                 { id: 'entrada', label: 'Entradas' },
                 { id: 'saida', label: 'Saídas' },
+                { id: 'cadastro', label: 'Cadastros' },
               ] as { id: Filtros['tipo']; label: string }[]
             ).map(({ id, label }) => (
               <button
@@ -232,11 +242,7 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
                 onClick={() => atualizar('tipo', id)}
                 className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
                   filtros.tipo === id
-                    ? id === 'entrada'
-                      ? 'bg-brand-green/20 text-brand-green'
-                      : id === 'saida'
-                        ? 'bg-brand-red/20 text-brand-red'
-                        : 'bg-brand-blue/20 text-brand-blue'
+                    ? corFiltroTipo[id]
                     : 'text-gray-400 hover:text-white bg-dark-hover'
                 }`}
               >
@@ -259,7 +265,6 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
                     { id: 'motivo', label: 'Motivo' },
                     { id: 'quantidade', label: 'Qtd.' },
                     { id: 'total', label: 'Total' },
-                    { id: 'status', label: 'Status' },
                   ] as { id: ColOrdem; label: string }[]
                 ).map(({ id, label }) => {
                   const ativo = ordemCol === id
@@ -309,7 +314,7 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
             <tbody>
               {itensPagina.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center text-gray-500 text-sm">
+                  <td colSpan={7} className="py-16 text-center text-gray-500 text-sm">
                     Nenhum registro encontrado.
                   </td>
                 </tr>
@@ -321,13 +326,9 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
                   >
                     <td className="px-5 py-3.5">
                       <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          r.tipo === 'entrada'
-                            ? 'bg-brand-green/15 text-brand-green'
-                            : 'bg-brand-red/15 text-brand-red'
-                        }`}
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeTipo[r.tipo]}`}
                       >
-                        {r.tipo === 'entrada' ? 'Entrada' : 'Saída'}
+                        {labelTipo[r.tipo]}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-gray-300 whitespace-nowrap">
@@ -336,22 +337,13 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
                     <td className="px-5 py-3.5 text-white font-medium whitespace-nowrap">{r.produto}</td>
                     <td className="px-5 py-3.5 text-gray-400 whitespace-nowrap">{r.fornecedor}</td>
                     <td className="px-5 py-3.5 text-gray-400 whitespace-nowrap">{r.motivo}</td>
-                    <td className="px-5 py-3.5 text-gray-300">{r.quantidade.toLocaleString('pt-BR')}</td>
+                    <td className="px-5 py-3.5 text-gray-300">
+                      {r.quantidade != null ? r.quantidade.toLocaleString('pt-BR') : '—'}
+                    </td>
                     <td className="px-5 py-3.5 text-white font-semibold">
                       {r.total
                         ? r.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
                         : '—'}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {r.status ? (
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeStatus[r.status] ?? ''}`}
-                        >
-                          {labelStatus[r.status] ?? r.status}
-                        </span>
-                      ) : (
-                        <span className="text-gray-600">—</span>
-                      )}
                     </td>
                   </tr>
                 ))
@@ -422,7 +414,6 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
               {filtroPopover.col === 'produto' && 'Filtrar produto'}
               {filtroPopover.col === 'fornecedor' && 'Filtrar fornecedor'}
               {filtroPopover.col === 'motivo' && 'Filtrar motivo'}
-              {filtroPopover.col === 'status' && 'Filtrar status'}
             </span>
             <div className="flex gap-1">
               {temFiltroAtivo(filtroPopover.col) && (
@@ -498,20 +489,6 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
               className={inputCls}
               autoFocus
             />
-          )}
-
-          {filtroPopover.col === 'status' && (
-            <select
-              value={filtros.status}
-              onChange={(e) => atualizar('status', e.target.value)}
-              className={inputCls}
-              autoFocus
-            >
-              <option value="">Todos</option>
-              <option value="recebido">Recebido</option>
-              <option value="aguardando">Aguardando</option>
-              <option value="cancelado">Cancelado</option>
-            </select>
           )}
         </div>
       )}

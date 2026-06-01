@@ -74,6 +74,8 @@ export interface Saida {
   produto_id: string
   usuario_id: string | null
   quantidade: number
+  custo_unitario: number | null
+  total: number | null
   motivo: string | null
   observacoes: string | null
   data_saida: string
