@@ -29,7 +29,7 @@ export function FiltrosEstoque({ filtros, categorias, coresDisponiveis, onChange
     onChange({ ...filtros, ...parcial })
   }
 
-  const mostrarFiltroCor = filtros.categoria !== '' && coresDisponiveis.length > 0
+  const mostrarFiltroCor = coresDisponiveis.length > 0
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -74,7 +74,7 @@ export function FiltrosEstoque({ filtros, categorias, coresDisponiveis, onChange
       {categorias.length > 0 && (
         <select
           value={filtros.categoria}
-          onChange={(e) => set({ categoria: e.target.value, cor: '' })}
+          onChange={(e) => set({ categoria: e.target.value })}
           className="bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-brand-blue transition-colors"
         >
           <option value="">Todas as categorias</option>

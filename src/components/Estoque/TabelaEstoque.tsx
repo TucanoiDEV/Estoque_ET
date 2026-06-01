@@ -3,6 +3,7 @@ import { IconEdit, IconTrash, IconLoader2, IconPackageOff } from '@tabler/icons-
 import { db } from '../../services/supabase'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useToast } from '../shared/Toast'
+import { sanitizarNumero, paraNumero } from '../../utils/numero'
 import { FiltrosEstoque } from './FiltrosEstoque'
 import type { ProdutoComEstoque, StatusEstoque, FiltrosEstoque as FiltrosType } from '../../types'
 
@@ -42,8 +43,8 @@ function ModalEdicao({ produto, onFechar, onSalvar }: ModalEdicaoProps) {
   const { mostrarToast } = useToast()
   const [nome, setNome] = useState(produto.nome)
   const [categoria, setCategoria] = useState(produto.categoria ?? '')
-  const [estoqueMinimo, setEstoqueMinimo] = useState(produto.estoque_minimo)
-  const [custoUnitario, setCustoUnitario] = useState(produto.custo_unitario ?? 0)
+  const [estoqueMinimo, setEstoqueMinimo] = useState(String(produto.estoque_minimo))
+  const [custoUnitario, setCustoUnitario] = useState(produto.custo_unitario != null ? String(produto.custo_unitario) : '')
   const [salvando, setSalvando] = useState(false)
 
   async function salvar() {
@@ -51,8 +52,8 @@ function ModalEdicao({ produto, onFechar, onSalvar }: ModalEdicaoProps) {
     const { error } = await db.produtos().update({
       nome,
       categoria,
-      estoque_minimo: estoqueMinimo,
-      custo_unitario: custoUnitario,
+      estoque_minimo: paraNumero(estoqueMinimo),
+      custo_unitario: paraNumero(custoUnitario) || null,
     }).eq('id', produto.id)
 
     if (error) {
@@ -98,22 +99,22 @@ function ModalEdicao({ produto, onFechar, onSalvar }: ModalEdicaoProps) {
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1">Estoque mínimo</label>
               <input
-                type="number"
-                min={0}
+                type="text"
+                inputMode="numeric"
                 value={estoqueMinimo}
-                onChange={(e) => setEstoqueMinimo(Number(e.target.value))}
+                onChange={(e) => setEstoqueMinimo(sanitizarNumero(e.target.value))}
                 className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue"
               />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1">Custo unit. (R$)</label>
               <input
-                type="number"
-                min={0}
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={custoUnitario}
-                onChange={(e) => setCustoUnitario(Number(e.target.value))}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue"
+                onChange={(e) => setCustoUnitario(sanitizarNumero(e.target.value, true))}
+                placeholder="0,00"
+                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue"
               />
             </div>
           </div>
@@ -153,15 +154,11 @@ export function TabelaEstoque({ produtos, loading, onRecarregar }: Props) {
     [produtos]
   )
 
-  // Extrai cores disponíveis para a categoria atualmente selecionada
-  const coresDisponiveis = useMemo(() => {
-    if (!filtros.categoria) return []
-    return [...new Set(
-      produtos
-        .filter((p) => p.categoria === filtros.categoria && p.cor)
-        .map((p) => p.cor as string)
-    )].sort()
-  }, [produtos, filtros.categoria])
+  // Extrai todas as cores cadastradas no estoque (filtro independente)
+  const coresDisponiveis = useMemo(
+    () => [...new Set(produtos.map((p) => p.cor).filter(Boolean) as string[])].sort(),
+    [produtos]
+  )
 
   // Aplica filtros
   const produtosFiltrados = useMemo(() => {

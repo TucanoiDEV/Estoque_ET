@@ -4,6 +4,9 @@ import { format } from 'date-fns'
 import { db } from '../../services/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useToast } from '../shared/Toast'
+import { sanitizarNumero, paraNumero } from '../../utils/numero'
+import { useLista } from '../../hooks/useLista'
+import { SelectComAdicionar } from '../shared/SelectComAdicionar'
 import type { Produto, Fornecedor, FormNovaEntrada } from '../../types'
 
 interface Props {
@@ -15,8 +18,8 @@ const LOCAIS = ['Estoque A', 'Estoque B', 'Depósito', 'Câmara Fria', 'Área Ex
 
 const FORM_INICIAL: FormNovaEntrada = {
   produto_id: '',
-  quantidade: 1,
-  custo_unitario: 0,
+  quantidade: '1',
+  custo_unitario: '',
   fornecedor_id: '',
   data_recebimento: format(new Date(), 'yyyy-MM-dd'),
   nf_numero: '',
@@ -32,6 +35,21 @@ export function NovaEntradaModal({ onFechar, onSalvo }: Props) {
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([])
   const [salvando, setSalvando] = useState(false)
   const [erros, setErros] = useState<Partial<Record<keyof FormNovaEntrada, string>>>({})
+
+  // Locais de armazenamento compartilhados com o cadastro de produtos
+  const locais = useLista('locais', LOCAIS)
+
+  // Insere um novo fornecedor no banco e o seleciona
+  async function adicionarFornecedor(nome: string): Promise<string | null> {
+    const { data, error } = await db.fornecedores().insert({ nome }).select('id, nome').single()
+    if (error || !data) {
+      mostrarToast(`Erro ao adicionar fornecedor: ${error?.message ?? 'desconhecido'}`, 'erro')
+      return null
+    }
+    setFornecedores((prev) => [...prev, data as Fornecedor].sort((a, b) => a.nome.localeCompare(b.nome)))
+    mostrarToast(`Fornecedor "${nome}" adicionado!`, 'sucesso')
+    return data.id
+  }
 
   useEffect(() => {
     async function carregar() {
@@ -51,22 +69,22 @@ export function NovaEntradaModal({ onFechar, onSalvo }: Props) {
     setForm((prev) => ({
       ...prev,
       produto_id: produtoId,
-      custo_unitario: produto?.custo_unitario ?? prev.custo_unitario,
+      custo_unitario: produto?.custo_unitario != null ? String(produto.custo_unitario) : prev.custo_unitario,
     }))
   }
 
-  function set(campo: keyof FormNovaEntrada, valor: string | number) {
+  function set(campo: keyof FormNovaEntrada, valor: string) {
     setForm((prev) => ({ ...prev, [campo]: valor }))
     if (erros[campo]) setErros((prev) => ({ ...prev, [campo]: undefined }))
   }
 
-  const total = form.quantidade * form.custo_unitario
+  const total = paraNumero(form.quantidade) * paraNumero(form.custo_unitario)
 
   function validar(): boolean {
     const novosErros: typeof erros = {}
     if (!form.produto_id) novosErros.produto_id = 'Selecione um produto'
-    if (form.quantidade < 1) novosErros.quantidade = 'Quantidade mínima é 1'
-    if (form.custo_unitario < 0) novosErros.custo_unitario = 'Custo não pode ser negativo'
+    if (paraNumero(form.quantidade) < 1) novosErros.quantidade = 'Quantidade mínima é 1'
+    if (paraNumero(form.custo_unitario) < 0) novosErros.custo_unitario = 'Custo não pode ser negativo'
     if (!form.data_recebimento) novosErros.data_recebimento = 'Informe a data de recebimento'
     setErros(novosErros)
     return Object.keys(novosErros).length === 0
@@ -79,12 +97,13 @@ export function NovaEntradaModal({ onFechar, onSalvo }: Props) {
 
     try {
       // 1. Registra a entrada
+      const quantidade = paraNumero(form.quantidade)
       const { error: erroEntrada } = await db.entradas().insert({
         produto_id: form.produto_id,
         fornecedor_id: form.fornecedor_id || null,
         usuario_id: usuario!.id,
-        quantidade: form.quantidade,
-        custo_unitario: form.custo_unitario || null,
+        quantidade,
+        custo_unitario: paraNumero(form.custo_unitario) || null,
         total: total || null,
         nf_numero: form.nf_numero || null,
         data_recebimento: form.data_recebimento,
@@ -106,11 +125,11 @@ export function NovaEntradaModal({ onFechar, onSalvo }: Props) {
         // Incrementa a quantidade existente
         await db
           .estoque()
-          .update({ quantidade: estoqueExistente.quantidade + form.quantidade, updated_at: new Date().toISOString() })
+          .update({ quantidade: estoqueExistente.quantidade + quantidade, updated_at: new Date().toISOString() })
           .eq('id', estoqueExistente.id)
       } else {
         // Cria novo registro de estoque
-        await db.estoque().insert({ produto_id: form.produto_id, quantidade: form.quantidade })
+        await db.estoque().insert({ produto_id: form.produto_id, quantidade })
       }
 
       mostrarToast('Entrada registrada com sucesso!', 'sucesso')
@@ -172,10 +191,10 @@ export function NovaEntradaModal({ onFechar, onSalvo }: Props) {
                 Quantidade <span className="text-brand-red">*</span>
               </label>
               <input
-                type="number"
-                min={1}
+                type="text"
+                inputMode="numeric"
                 value={form.quantidade}
-                onChange={(e) => set('quantidade', Number(e.target.value))}
+                onChange={(e) => set('quantidade', sanitizarNumero(e.target.value))}
                 className={`w-full bg-dark-bg border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors ${
                   erros.quantidade ? 'border-brand-red' : 'border-dark-border'
                 }`}
@@ -185,12 +204,12 @@ export function NovaEntradaModal({ onFechar, onSalvo }: Props) {
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">Custo unitário (R$)</label>
               <input
-                type="number"
-                min={0}
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={form.custo_unitario}
-                onChange={(e) => set('custo_unitario', Number(e.target.value))}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors"
+                onChange={(e) => set('custo_unitario', sanitizarNumero(e.target.value, true))}
+                placeholder="0,00"
+                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors"
               />
             </div>
           </div>
@@ -204,19 +223,15 @@ export function NovaEntradaModal({ onFechar, onSalvo }: Props) {
           </div>
 
           {/* Fornecedor */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Fornecedor</label>
-            <select
-              value={form.fornecedor_id}
-              onChange={(e) => set('fornecedor_id', e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors"
-            >
-              <option value="">Sem fornecedor</option>
-              {fornecedores.map((f) => (
-                <option key={f.id} value={f.id}>{f.nome}</option>
-              ))}
-            </select>
-          </div>
+          <SelectComAdicionar
+            label="Fornecedor"
+            value={form.fornecedor_id}
+            textoVazio="Sem fornecedor"
+            opcoes={fornecedores.map((f) => ({ value: f.id, label: f.nome }))}
+            onChange={(v) => set('fornecedor_id', v)}
+            onAdicionar={adicionarFornecedor}
+            placeholderNovo="Nome do novo fornecedor..."
+          />
 
           {/* Data + NF */}
           <div className="grid grid-cols-2 gap-3">
@@ -244,18 +259,14 @@ export function NovaEntradaModal({ onFechar, onSalvo }: Props) {
           </div>
 
           {/* Local de armazenamento */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Local de armazenamento</label>
-            <select
-              value={form.local_armazenamento}
-              onChange={(e) => set('local_armazenamento', e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors"
-            >
-              {LOCAIS.map((l) => (
-                <option key={l} value={l}>{l}</option>
-              ))}
-            </select>
-          </div>
+          <SelectComAdicionar
+            label="Local de armazenamento"
+            value={form.local_armazenamento}
+            opcoes={locais.itens.map((l) => ({ value: l, label: l }))}
+            onChange={(v) => set('local_armazenamento', v)}
+            onAdicionar={(texto) => { locais.adicionar(texto); return texto }}
+            placeholderNovo="Novo local (ex.: Prateleira 3)"
+          />
 
           {/* Observações */}
           <div>

@@ -5,8 +5,10 @@ import type {
   Produto,
   Fornecedor,
   Entrada,
+  Saida,
   MetricasDashboard,
   DadoGrafico,
+  DadoProdutoMovimentado,
   StatusEstoque,
 } from '../types'
 
@@ -17,10 +19,29 @@ function calcularStatus(quantidade: number, minimo: number): StatusEstoque {
   return 'normal'
 }
 
+// Soma a quantidade por mês ao longo dos últimos N meses
+function serieMensal(registros: { created_at: string; quantidade: number }[], meses: number): DadoGrafico[] {
+  const resultado: DadoGrafico[] = []
+  for (let i = meses - 1; i >= 0; i--) {
+    const d = new Date()
+    d.setMonth(d.getMonth() - i)
+    const chave = d.toISOString().slice(0, 7)
+    const nomeMes = d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
+    const doMes = registros.filter((r) => r.created_at?.startsWith(chave))
+    resultado.push({
+      mes: nomeMes,
+      quantidade: doMes.reduce((acc, r) => acc + r.quantidade, 0),
+      total: 0,
+    })
+  }
+  return resultado
+}
+
 export function useEstoque() {
   const [produtos, setProdutos] = useState<ProdutoComEstoque[]>([])
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([])
   const [entradas, setEntradas] = useState<Entrada[]>([])
+  const [saidas, setSaidas] = useState<Saida[]>([])
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
 
@@ -75,9 +96,22 @@ export function useEstoque() {
     setEntradas((data as Entrada[]) ?? [])
   }, [])
 
+  const carregarSaidas = useCallback(async () => {
+    // Se a tabela ainda não existir (saidas.sql não rodado), data vem null
+    const { data } = await db
+      .saidas()
+      .select(`
+        *,
+        produto:produto_id (id, codigo, nome)
+      `)
+      .order('created_at', { ascending: false })
+
+    setSaidas((data as Saida[]) ?? [])
+  }, [])
+
   useEffect(() => {
-    Promise.all([carregarProdutos(), carregarFornecedores(), carregarEntradas()])
-  }, [carregarProdutos, carregarFornecedores, carregarEntradas])
+    Promise.all([carregarProdutos(), carregarFornecedores(), carregarEntradas(), carregarSaidas()])
+  }, [carregarProdutos, carregarFornecedores, carregarEntradas, carregarSaidas])
 
   // Métricas calculadas do dashboard
   const metricas: MetricasDashboard = {
@@ -108,7 +142,7 @@ export function useEstoque() {
     return meses
   })()
 
-  // Top 5 produtos mais movimentados
+  // Top 5 produtos mais movimentados (por entradas)
   const topProdutos = (() => {
     const contagem: Record<string, { nome: string; movimentacoes: number }> = {}
     entradas.forEach((e) => {
@@ -123,17 +157,43 @@ export function useEstoque() {
       .slice(0, 5)
   })()
 
+  // Entradas ao longo do ano (12 meses) — gráfico de área
+  const dadosEntradasAnual: DadoGrafico[] = serieMensal(entradas, 12)
+
+  // Saídas mensais (12 meses) — gráfico de barras
+  const dadosSaidasMensal: DadoGrafico[] = serieMensal(saidas, 12)
+
+  // Top 5 produtos mais vendidos (por saídas)
+  const topProdutosVendidos: DadoProdutoMovimentado[] = (() => {
+    const contagem: Record<string, { nome: string; movimentacoes: number }> = {}
+    saidas.forEach((s) => {
+      const nome = (s.produto as Produto | undefined)?.nome ?? 'Desconhecido'
+      contagem[s.produto_id] = {
+        nome,
+        movimentacoes: (contagem[s.produto_id]?.movimentacoes ?? 0) + s.quantidade,
+      }
+    })
+    return Object.values(contagem)
+      .sort((a, b) => b.movimentacoes - a.movimentacoes)
+      .slice(0, 5)
+  })()
+
   return {
     produtos,
     fornecedores,
     entradas,
+    saidas,
     loading,
     erro,
     metricas,
     dadosGraficoMensal,
     topProdutos,
-    recarregar: () => Promise.all([carregarProdutos(), carregarFornecedores(), carregarEntradas()]),
+    dadosEntradasAnual,
+    dadosSaidasMensal,
+    topProdutosVendidos,
+    recarregar: () => Promise.all([carregarProdutos(), carregarFornecedores(), carregarEntradas(), carregarSaidas()]),
     recarregarProdutos: carregarProdutos,
     recarregarEntradas: carregarEntradas,
+    recarregarSaidas: carregarSaidas,
   }
 }

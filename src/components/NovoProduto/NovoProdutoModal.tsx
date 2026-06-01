@@ -2,6 +2,10 @@ import { useState, FormEvent } from 'react'
 import { IconX, IconLoader2, IconPackages } from '@tabler/icons-react'
 import { db } from '../../services/supabase'
 import { useToast } from '../shared/Toast'
+import { sanitizarNumero, paraNumero } from '../../utils/numero'
+import { useLista } from '../../hooks/useLista'
+import { SelectComAdicionar, type Opcao } from '../shared/SelectComAdicionar'
+import { CORES_PADRAO } from '../../utils/listasPadrao'
 
 interface Props {
   onFechar: () => void
@@ -14,9 +18,9 @@ interface FormProduto {
   categoria: string
   unidade: string
   cor: string
-  custo_unitario: number
-  estoque_minimo: number
-  quantidade_inicial: number
+  custo_unitario: string
+  estoque_minimo: string
+  quantidade_inicial: string
   local_armazenamento: string
 }
 
@@ -39,9 +43,9 @@ const FORM_INICIAL: FormProduto = {
   categoria: '',
   unidade: 'UN',
   cor: '',
-  custo_unitario: 0,
-  estoque_minimo: 0,
-  quantidade_inicial: 0,
+  custo_unitario: '',
+  estoque_minimo: '',
+  quantidade_inicial: '',
   local_armazenamento: 'Estoque A',
 }
 
@@ -51,7 +55,19 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
   const [salvando, setSalvando] = useState(false)
   const [erros, setErros] = useState<Partial<Record<keyof FormProduto, string>>>({})
 
-  function set(campo: keyof FormProduto, valor: string | number) {
+  // Listas editáveis (o usuário pode adicionar novos itens) — salvas no navegador
+  const cores = useLista('cores', CORES_PADRAO)
+  const unidadesExtra = useLista('unidades', [])
+  const locais = useLista('locais', LOCAIS)
+
+  const opcoesUnidade: Opcao[] = [
+    ...UNIDADES,
+    ...unidadesExtra.itens
+      .filter((u) => !UNIDADES.some((d) => d.value === u))
+      .map((u) => ({ value: u, label: u })),
+  ]
+
+  function set(campo: keyof FormProduto, valor: string) {
     setForm((prev) => ({ ...prev, [campo]: valor }))
     if (erros[campo]) setErros((prev) => ({ ...prev, [campo]: undefined }))
   }
@@ -61,9 +77,9 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
     if (!form.codigo.trim()) novosErros.codigo = 'Código é obrigatório'
     if (!form.nome.trim()) novosErros.nome = 'Nome é obrigatório'
     if (!form.unidade) novosErros.unidade = 'Selecione uma unidade'
-    if (form.custo_unitario < 0) novosErros.custo_unitario = 'Custo não pode ser negativo'
-    if (form.estoque_minimo < 0) novosErros.estoque_minimo = 'Valor não pode ser negativo'
-    if (form.quantidade_inicial < 0) novosErros.quantidade_inicial = 'Valor não pode ser negativo'
+    if (paraNumero(form.custo_unitario) < 0) novosErros.custo_unitario = 'Custo não pode ser negativo'
+    if (paraNumero(form.estoque_minimo) < 0) novosErros.estoque_minimo = 'Valor não pode ser negativo'
+    if (paraNumero(form.quantidade_inicial) < 0) novosErros.quantidade_inicial = 'Valor não pode ser negativo'
     setErros(novosErros)
     return Object.keys(novosErros).length === 0
   }
@@ -81,8 +97,8 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
           categoria: form.categoria.trim() || null,
           unidade: form.unidade,
           cor: form.cor.trim() || null,
-          custo_unitario: form.custo_unitario || null,
-          estoque_minimo: form.estoque_minimo,
+          custo_unitario: paraNumero(form.custo_unitario) || null,
+          estoque_minimo: paraNumero(form.estoque_minimo),
           local_armazenamento: form.local_armazenamento || null,
         })
         .select('id')
@@ -92,7 +108,7 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
 
       const { error: erroEstoque } = await db.estoque().insert({
         produto_id: produto.id,
-        quantidade: form.quantidade_inicial,
+        quantidade: paraNumero(form.quantidade_inicial),
       })
 
       if (erroEstoque) throw new Error(erroEstoque.message)
@@ -151,20 +167,16 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
               />
               {erros.codigo && <p className="text-xs text-brand-red mt-1">{erros.codigo}</p>}
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                Unidade de medida <span className="text-brand-red">*</span>
-              </label>
-              <select
-                value={form.unidade}
-                onChange={(e) => set('unidade', e.target.value)}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors"
-              >
-                {UNIDADES.map((u) => (
-                  <option key={u.value} value={u.value}>{u.label}</option>
-                ))}
-              </select>
-            </div>
+            <SelectComAdicionar
+              label="Unidade de medida"
+              obrigatorio
+              value={form.unidade}
+              opcoes={opcoesUnidade}
+              onChange={(v) => set('unidade', v)}
+              onAdicionar={(texto) => { unidadesExtra.adicionar(texto); return texto }}
+              erro={erros.unidade}
+              placeholderNovo="Nova unidade (ex.: Rolo)"
+            />
           </div>
 
           {/* Nome */}
@@ -196,16 +208,15 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
                 className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors"
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Cor</label>
-              <input
-                type="text"
-                value={form.cor}
-                onChange={(e) => set('cor', e.target.value)}
-                placeholder="Ex: Azul, Verde, Preta..."
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors"
-              />
-            </div>
+            <SelectComAdicionar
+              label="Cor"
+              value={form.cor}
+              textoVazio="Sem cor"
+              opcoes={cores.itens.map((c) => ({ value: c, label: c }))}
+              onChange={(v) => set('cor', v)}
+              onAdicionar={(texto) => { cores.adicionar(texto); return texto }}
+              placeholderNovo="Nova cor (ex.: Laranja)"
+            />
           </div>
 
           {/* Custo unit. + Estoque mínimo */}
@@ -213,22 +224,23 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">Custo unitário (R$)</label>
               <input
-                type="number"
-                min={0}
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={form.custo_unitario}
-                onChange={(e) => set('custo_unitario', Number(e.target.value))}
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors"
+                onChange={(e) => set('custo_unitario', sanitizarNumero(e.target.value, true))}
+                placeholder="0,00"
+                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors"
               />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">Estoque mínimo</label>
               <input
-                type="number"
-                min={0}
+                type="text"
+                inputMode="numeric"
                 value={form.estoque_minimo}
-                onChange={(e) => set('estoque_minimo', Number(e.target.value))}
-                className={`w-full bg-dark-bg border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors ${
+                onChange={(e) => set('estoque_minimo', sanitizarNumero(e.target.value))}
+                placeholder="0"
+                className={`w-full bg-dark-bg border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors ${
                   erros.estoque_minimo ? 'border-brand-red' : 'border-dark-border'
                 }`}
               />
@@ -240,11 +252,12 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1.5">Quantidade inicial em estoque</label>
             <input
-              type="number"
-              min={0}
+              type="text"
+              inputMode="numeric"
               value={form.quantidade_inicial}
-              onChange={(e) => set('quantidade_inicial', Number(e.target.value))}
-              className={`w-full bg-dark-bg border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors ${
+              onChange={(e) => set('quantidade_inicial', sanitizarNumero(e.target.value))}
+              placeholder="0"
+              className={`w-full bg-dark-bg border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors ${
                 erros.quantidade_inicial ? 'border-brand-red' : 'border-dark-border'
               }`}
             />
@@ -252,18 +265,14 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
           </div>
 
           {/* Local de armazenamento */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Local de armazenamento</label>
-            <select
-              value={form.local_armazenamento}
-              onChange={(e) => set('local_armazenamento', e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors"
-            >
-              {LOCAIS.map((l) => (
-                <option key={l} value={l}>{l}</option>
-              ))}
-            </select>
-          </div>
+          <SelectComAdicionar
+            label="Local de armazenamento"
+            value={form.local_armazenamento}
+            opcoes={locais.itens.map((l) => ({ value: l, label: l }))}
+            onChange={(v) => set('local_armazenamento', v)}
+            onAdicionar={(texto) => { locais.adicionar(texto); return texto }}
+            placeholderNovo="Novo local (ex.: Prateleira 3)"
+          />
 
           {/* Botões */}
           <div className="flex gap-3 pt-2">

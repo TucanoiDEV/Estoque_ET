@@ -68,6 +68,18 @@ export interface Entrada {
   usuario?: Usuario
 }
 
+export interface Saida {
+  id: string
+  produto_id: string
+  usuario_id: string | null
+  quantidade: number
+  motivo: string | null
+  observacoes: string | null
+  data_saida: string
+  created_at: string
+  produto?: Produto
+}
+
 export interface Configuracao {
   id: string
   chave: string
@@ -124,11 +136,11 @@ export interface MetricasDashboard {
   entradasMes: number
 }
 
-// Formulário nova entrada
+// Formulário nova entrada (campos numéricos como string enquanto digitados)
 export interface FormNovaEntrada {
   produto_id: string
-  quantidade: number
-  custo_unitario: number
+  quantidade: string
+  custo_unitario: string
   fornecedor_id: string
   data_recebimento: string
   nf_numero: string

@@ -30,5 +30,6 @@ export const db = {
   estoque: () => supabase.from('estoque'),
   fornecedores: () => supabase.from('fornecedores'),
   entradas: () => supabase.from('entradas'),
+  saidas: () => supabase.from('saidas'),
   configuracoes: () => supabase.from('configuracoes'),
 }

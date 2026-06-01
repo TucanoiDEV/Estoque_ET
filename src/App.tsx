@@ -27,6 +27,7 @@ import { TabelaEstoque } from './components/Estoque/TabelaEstoque'
 
 // Configurações
 import { UsuariosSection } from './components/Configuracoes/UsuariosSection'
+import { FornecedoresSection } from './components/Configuracoes/FornecedoresSection'
 import { EstoqueSection } from './components/Configuracoes/EstoqueSection'
 import { NotificacoesSection } from './components/Configuracoes/NotificacoesSection'
 import { IASection } from './components/Configuracoes/IASection'
@@ -49,6 +50,7 @@ const subAbasDashboard: { id: SubAbaDashboard; label: string }[] = [
 // ─── Sub-abas de Configurações ────────────────────────────────────────────────
 type SubAbaConfig =
   | 'usuarios'
+  | 'fornecedores'
   | 'estoque'
   | 'notificacoes'
   | 'ia'
@@ -56,6 +58,7 @@ type SubAbaConfig =
 
 const subAbasConfig: { id: SubAbaConfig; label: string }[] = [
   { id: 'usuarios', label: 'Usuários' },
+  { id: 'fornecedores', label: 'Fornecedores' },
   { id: 'estoque', label: 'Estoque' },
   { id: 'notificacoes', label: 'Notificações' },
   { id: 'ia', label: 'Assistente IA' },
@@ -93,13 +96,17 @@ function AppLayout() {
     metricas,
     dadosGraficoMensal,
     topProdutos,
+    dadosEntradasAnual,
+    dadosSaidasMensal,
+    topProdutosVendidos,
     recarregar,
     recarregarProdutos,
     recarregarEntradas,
+    recarregarSaidas,
   } = useEstoque()
 
   // Sync em tempo real
-  const onEstoqueChange = useCallback(() => { recarregarProdutos() }, [recarregarProdutos])
+  const onEstoqueChange = useCallback(() => { recarregarProdutos(); recarregarSaidas() }, [recarregarProdutos, recarregarSaidas])
   const onEntradasChange = useCallback(() => { recarregarEntradas() }, [recarregarEntradas])
   const { sincronizando } = useRealtime({ onEstoqueChange, onEntradasChange })
 
@@ -155,7 +162,14 @@ function AppLayout() {
                 </div>
 
                 {subAbaDash === 'graficos' && (
-                  <GraficosTab dadosMensais={dadosGraficoMensal} topProdutos={topProdutos} loading={loading} />
+                  <GraficosTab
+                    dadosMensais={dadosGraficoMensal}
+                    topProdutos={topProdutos}
+                    dadosAnuais={dadosEntradasAnual}
+                    dadosSaidas={dadosSaidasMensal}
+                    topVendidos={topProdutosVendidos}
+                    loading={loading}
+                  />
                 )}
                 {subAbaDash === 'relatorios' && (
                   <RelatoriosTab produtos={produtos} entradas={entradas} fornecedores={fornecedores} loading={loading} />
@@ -206,6 +220,7 @@ function AppLayout() {
                   {/* Painel da seção selecionada */}
                   <div className="flex-1 bg-dark-card border border-dark-border rounded-xl p-6 min-h-96">
                     {subAbaConf === 'usuarios' && <UsuariosSection />}
+                    {subAbaConf === 'fornecedores' && <FornecedoresSection />}
                     {subAbaConf === 'estoque' && <EstoqueSection />}
                     {subAbaConf === 'notificacoes' && <NotificacoesSection />}
                     {subAbaConf === 'ia' && <IASection />}

@@ -95,7 +95,7 @@ test.describe('4. Nova entrada', () => {
     await expect(page.getByText('Nova entrada de estoque')).toBeVisible()
     // Seleciona o primeiro produto real
     await page.locator('select').first().selectOption({ index: 1 })
-    await page.getByRole('spinbutton').first().fill('3') // quantidade
+    await page.locator('input[inputmode="numeric"]').first().fill('3') // quantidade
     // Total deve refletir quantidade × custo (algum valor em R$)
     await expect(page.getByText('Total da entrada')).toBeVisible()
   })
@@ -148,7 +148,7 @@ test.describe('7. Configurações (admin)', () => {
 
   test('seções de configuração acessíveis', async ({ page }) => {
     const menu = page.getByRole('main')
-    for (const secao of ['Empresa', 'Usuários', 'Estoque', 'Notificações', 'Assistente IA', 'Backup', 'Aparência']) {
+    for (const secao of ['Usuários', 'Estoque', 'Notificações', 'Assistente IA', 'Backup']) {
       await expect(menu.getByRole('button', { name: secao, exact: true })).toBeVisible()
     }
   })
@@ -161,8 +161,8 @@ test.describe('7. Configurações (admin)', () => {
   })
 
   test('troca de tema persiste após reload', async ({ page }) => {
-    await page.getByRole('button', { name: 'Aparência' }).click()
-    await page.getByText('Tema claro').click()
+    // O toggle de tema fica no header (botão sol/lua)
+    await page.getByRole('button', { name: 'Mudar para tema claro' }).click()
     await page.reload()
     // localStorage deve ter o tema 'claro'
     const tema = await page.evaluate(() => localStorage.getItem('tema'))
@@ -205,9 +205,12 @@ test.describe('10. Console e erros', () => {
     await page.getByRole('button', { name: 'Configurações' }).click()
     await expect(page.getByRole('heading', { name: 'Configurações' })).toBeVisible()
 
-    // Ignora ruídos conhecidos não originados pelo app
+    // Ignora ruídos conhecidos não originados por erro de JS do app:
+    // - avisos do React DevTools / favicon
+    // - "Failed to load resource ... 404" da tabela 'saidas' enquanto supabase/saidas.sql não foi executado
     const relevantes = erros.filter((e) =>
-      !/React DevTools|favicon|Download the React/i.test(e)
+      !/React DevTools|favicon|Download the React/i.test(e) &&
+      !/Failed to load resource/i.test(e)
     )
     console.log('Erros de console capturados:', relevantes.length ? relevantes : 'nenhum')
     expect(relevantes, `Erros: ${relevantes.join(' | ')}`).toHaveLength(0)

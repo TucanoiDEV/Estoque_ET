@@ -3,11 +3,16 @@ import { IconTrash, IconPlus, IconLoader2 } from '@tabler/icons-react'
 import { db } from '../../services/supabase'
 import { useToast } from '../shared/Toast'
 import { usePermissions } from '../../hooks/usePermissions'
+import { sanitizarNumero, paraNumero } from '../../utils/numero'
+import { useLista } from '../../hooks/useLista'
+import { GerenciadorLista } from '../shared/GerenciadorLista'
+import { CORES_PADRAO } from '../../utils/listasPadrao'
 
 export function EstoqueSection() {
   const { mostrarToast } = useToast()
   const { canChangeSettings } = usePermissions()
-  const [estoqueMinimoPadrao, setEstoqueMinimoPadrao] = useState(10)
+  const cores = useLista('cores', CORES_PADRAO)
+  const [estoqueMinimoPadrao, setEstoqueMinimoPadrao] = useState('10')
   const [categorias, setCategorias] = useState<string[]>([])
   const [novaCategoria, setNovaCategoria] = useState('')
   const [salvando, setSalvando] = useState(false)
@@ -17,7 +22,7 @@ export function EstoqueSection() {
       const { data } = await db.configuracoes().select('chave, valor').in('chave', ['estoque_minimo_padrao', 'categorias'])
       if (data) {
         data.forEach((c: any) => {
-          if (c.chave === 'estoque_minimo_padrao') setEstoqueMinimoPadrao(Number(c.valor ?? 10))
+          if (c.chave === 'estoque_minimo_padrao') setEstoqueMinimoPadrao(String(c.valor ?? '10'))
           if (c.chave === 'categorias') {
             try { setCategorias(JSON.parse(c.valor ?? '[]')) } catch { /* ignora */ }
           }
@@ -30,7 +35,7 @@ export function EstoqueSection() {
   async function salvar() {
     setSalvando(true)
     const { error } = await db.configuracoes().upsert([
-      { chave: 'estoque_minimo_padrao', valor: String(estoqueMinimoPadrao) },
+      { chave: 'estoque_minimo_padrao', valor: String(paraNumero(estoqueMinimoPadrao)) },
       { chave: 'categorias', valor: JSON.stringify(categorias) },
     ], { onConflict: 'chave' })
     if (error) {
@@ -60,10 +65,10 @@ export function EstoqueSection() {
       <div className="max-w-xs">
         <label className="block text-xs font-medium text-gray-400 mb-1.5">Estoque mínimo padrão</label>
         <input
-          type="number"
-          min={0}
+          type="text"
+          inputMode="numeric"
           value={estoqueMinimoPadrao}
-          onChange={(e) => setEstoqueMinimoPadrao(Number(e.target.value))}
+          onChange={(e) => setEstoqueMinimoPadrao(sanitizarNumero(e.target.value))}
           disabled={leitura}
           className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue disabled:opacity-50 disabled:cursor-not-allowed"
         />
@@ -103,6 +108,18 @@ export function EstoqueSection() {
           </div>
         )}
       </div>
+
+      {/* Cores disponíveis para os produtos */}
+      <GerenciadorLista
+        label="Cores de produtos"
+        itens={cores.itens}
+        onAdicionar={cores.adicionar}
+        onRemover={cores.remover}
+        placeholder="Nova cor (ex.: Laranja)"
+        desabilitado={leitura}
+        textoVazio="Nenhuma cor cadastrada"
+        ajuda="Salvas automaticamente neste navegador. Excluir uma cor não altera produtos já cadastrados."
+      />
 
       {!leitura && (
         <button

@@ -3,6 +3,8 @@ import { IconX, IconLoader2, IconMinus } from '@tabler/icons-react'
 import { format } from 'date-fns'
 import { db } from '../../services/supabase'
 import { useToast } from '../shared/Toast'
+import { useAuth } from '../../hooks/useAuth'
+import { sanitizarNumero, paraNumero } from '../../utils/numero'
 import type { Produto } from '../../types'
 
 interface Props {
@@ -17,7 +19,7 @@ interface ProdutoComEstoque extends Produto {
 
 interface FormSaida {
   produto_id: string
-  quantidade: number
+  quantidade: string
   motivo: string
   observacoes: string
   data_saida: string
@@ -36,7 +38,7 @@ const MOTIVOS = [
 
 const FORM_INICIAL: FormSaida = {
   produto_id: '',
-  quantidade: 1,
+  quantidade: '1',
   motivo: 'Consumo interno',
   observacoes: '',
   data_saida: format(new Date(), 'yyyy-MM-dd'),
@@ -44,6 +46,7 @@ const FORM_INICIAL: FormSaida = {
 
 export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
   const { mostrarToast } = useToast()
+  const { usuario } = useAuth()
   const [form, setForm] = useState<FormSaida>(FORM_INICIAL)
   const [produtos, setProdutos] = useState<ProdutoComEstoque[]>([])
   const [salvando, setSalvando] = useState(false)
@@ -67,19 +70,20 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
     carregar()
   }, [])
 
-  function set(campo: keyof FormSaida, valor: string | number) {
+  function set(campo: keyof FormSaida, valor: string) {
     setForm((prev) => ({ ...prev, [campo]: valor }))
     if (erros[campo]) setErros((prev) => ({ ...prev, [campo]: undefined }))
   }
 
   const produtoSelecionado = produtos.find((p) => p.id === form.produto_id)
-  const estoqueApos = produtoSelecionado ? produtoSelecionado.quantidade_atual - form.quantidade : 0
+  const quantidadeNum = paraNumero(form.quantidade)
+  const estoqueApos = produtoSelecionado ? produtoSelecionado.quantidade_atual - quantidadeNum : 0
 
   function validar(): boolean {
     const novosErros: typeof erros = {}
     if (!form.produto_id) novosErros.produto_id = 'Selecione um produto'
-    if (form.quantidade < 1) novosErros.quantidade = 'Quantidade mínima é 1'
-    if (produtoSelecionado && form.quantidade > produtoSelecionado.quantidade_atual) {
+    if (quantidadeNum < 1) novosErros.quantidade = 'Quantidade mínima é 1'
+    if (produtoSelecionado && quantidadeNum > produtoSelecionado.quantidade_atual) {
       novosErros.quantidade = `Máximo disponível: ${produtoSelecionado.quantidade_atual} ${produtoSelecionado.unidade}`
     }
     if (!form.data_saida) novosErros.data_saida = 'Informe a data'
@@ -97,7 +101,22 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
         .update({ quantidade: estoqueApos, updated_at: new Date().toISOString() })
         .eq('id', produtoSelecionado.estoque_id)
       if (error) throw new Error(error.message)
-      mostrarToast(`Saída de ${form.quantidade} ${produtoSelecionado.unidade} registrada!`, 'sucesso')
+
+      // Registra a saída no histórico (para os gráficos). Se a tabela ainda não
+      // existir (saidas.sql não rodado), a baixa de estoque acima já foi feita.
+      const { error: erroRegistro } = await db.saidas().insert({
+        produto_id: produtoSelecionado.id,
+        usuario_id: usuario?.id ?? null,
+        quantidade: quantidadeNum,
+        motivo: form.motivo || null,
+        observacoes: form.observacoes || null,
+        data_saida: form.data_saida,
+      })
+      if (erroRegistro) {
+        console.warn('[Saída] Histórico não registrado (rode supabase/saidas.sql):', erroRegistro.message)
+      }
+
+      mostrarToast(`Saída de ${quantidadeNum} ${produtoSelecionado.unidade} registrada!`, 'sucesso')
       onSalvo()
       onFechar()
     } catch (err) {
@@ -168,11 +187,10 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
                 Quantidade <span className="text-brand-red">*</span>
               </label>
               <input
-                type="number"
-                min={1}
-                max={produtoSelecionado?.quantidade_atual}
+                type="text"
+                inputMode="numeric"
                 value={form.quantidade}
-                onChange={(e) => set('quantidade', Number(e.target.value))}
+                onChange={(e) => set('quantidade', sanitizarNumero(e.target.value))}
                 className={`w-full bg-dark-bg border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors ${
                   erros.quantidade ? 'border-brand-red' : 'border-dark-border'
                 }`}
@@ -219,7 +237,7 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
           </div>
 
           {/* Estoque após saída */}
-          {produtoSelecionado && form.quantidade >= 1 && (
+          {produtoSelecionado && quantidadeNum >= 1 && (
             <div
               className={`border rounded-lg px-4 py-3 flex items-center justify-between ${
                 estoqueApos < 0
