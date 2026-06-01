@@ -54,7 +54,7 @@ const ITENS_POR_PAGINA = 10
 const badgeTipo: Record<TipoRegistro, string> = {
   entrada: 'bg-brand-green/15 text-brand-green',
   saida: 'bg-brand-red/15 text-brand-red',
-  cadastro: 'bg-brand-purple/15 text-brand-purple',
+  cadastro: 'bg-brand-blue/15 text-brand-blue',
 }
 
 const labelTipo: Record<TipoRegistro, string> = {
@@ -67,7 +67,7 @@ const corFiltroTipo: Record<Filtros['tipo'], string> = {
   todos: 'bg-brand-blue/20 text-brand-blue',
   entrada: 'bg-brand-green/20 text-brand-green',
   saida: 'bg-brand-red/20 text-brand-red',
-  cadastro: 'bg-brand-purple/20 text-brand-purple',
+  cadastro: 'bg-brand-blue/20 text-brand-blue',
 }
 
 const inputCls =
