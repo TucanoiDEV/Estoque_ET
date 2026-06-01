@@ -1,4 +1,4 @@
-import { IconPackages, IconCurrencyDollar, IconAlertTriangle, IconTrendingUp } from '@tabler/icons-react'
+import { IconPackages, IconCurrencyDollar, IconAlertTriangle, IconTrendingUp, IconTrendingDown } from '@tabler/icons-react'
 import type { MetricasDashboard } from '../../types'
 
 interface Props {
@@ -48,11 +48,19 @@ export function MetricCards({ metricas, loading }: Props) {
       bg: 'bg-brand-green/10',
       descricao: 'registros este mês',
     },
+    {
+      titulo: 'Saídas no mês',
+      valor: formatarNumero(metricas.saidasMes),
+      icone: <IconTrendingDown size={22} />,
+      cor: 'text-brand-red',
+      bg: 'bg-brand-red/10',
+      descricao: 'registros este mês',
+    },
   ]
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="bg-dark-card border border-dark-border rounded-xl p-5 animate-pulse">
             <div className="h-4 bg-dark-hover rounded w-3/4 mb-3" />
@@ -65,7 +73,7 @@ export function MetricCards({ metricas, loading }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
       {cards.map((card) => (
         <div
           key={card.titulo}

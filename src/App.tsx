@@ -172,7 +172,7 @@ function AppLayout() {
                   <RelatoriosTab produtos={produtos} entradas={entradas} fornecedores={fornecedores} loading={loading} />
                 )}
                 {subAbaDash === 'historico' && (
-                  <HistoricoTab entradas={entradas} loading={loading} />
+                  <HistoricoTab entradas={entradas} saidas={saidas} loading={loading} />
                 )}
               </div>
             )}

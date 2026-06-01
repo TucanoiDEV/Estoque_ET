@@ -161,19 +161,11 @@ export function RelatoriosTab({ produtos, entradas, fornecedores, loading }: Pro
     }
   }
 
-  // Resumo do período atual
-  const mesAtual = new Date().toISOString().slice(0, 7)
-  const entradasMes = entradas.filter((e) => e.created_at.startsWith(mesAtual))
-  const totalEntradasMes = entradasMes.reduce((acc, e) => acc + e.quantidade, 0)
-  const totalSaidasMes = 0 // Sistema atual só registra entradas
-
   return (
     <div className="space-y-6">
-      {/* Resumo do período */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {/* Resumo */}
+      <div className="grid grid-cols-2 gap-4">
         {[
-          { label: 'Total entradas', valor: totalEntradasMes.toLocaleString('pt-BR'), cor: 'text-brand-green' },
-          { label: 'Total saídas', valor: totalSaidasMes.toLocaleString('pt-BR'), cor: 'text-brand-red' },
           { label: 'Itens cadastrados', valor: produtos.length.toLocaleString('pt-BR'), cor: 'text-brand-blue' },
           { label: 'Fornecedores ativos', valor: fornecedores.length.toLocaleString('pt-BR'), cor: 'text-brand-purple' },
         ].map((item) => (

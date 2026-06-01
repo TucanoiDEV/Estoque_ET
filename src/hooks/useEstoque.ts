@@ -114,14 +114,13 @@ export function useEstoque() {
   }, [carregarProdutos, carregarFornecedores, carregarEntradas, carregarSaidas])
 
   // Métricas calculadas do dashboard
+  const mesAtual = new Date().toISOString().slice(0, 7)
   const metricas: MetricasDashboard = {
     totalItens: produtos.reduce((acc, p) => acc + p.quantidade, 0),
     valorTotal: produtos.reduce((acc, p) => acc + (p.custo_unitario ?? 0) * p.quantidade, 0),
     itensCriticos: produtos.filter((p) => p.status === 'critico').length,
-    entradasMes: entradas.filter((e) => {
-      const mesAtual = new Date().toISOString().slice(0, 7)
-      return e.created_at.startsWith(mesAtual)
-    }).length,
+    entradasMes: entradas.filter((e) => e.created_at.startsWith(mesAtual)).length,
+    saidasMes: saidas.filter((s) => s.created_at.startsWith(mesAtual)).length,
   }
 
   // Dados para gráfico de entradas mensais dos últimos 6 meses

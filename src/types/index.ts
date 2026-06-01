@@ -134,6 +134,7 @@ export interface MetricasDashboard {
   valorTotal: number
   itensCriticos: number
   entradasMes: number
+  saidasMes: number
 }
 
 // Formulário nova entrada (campos numéricos como string enquanto digitados)
