@@ -11,6 +11,7 @@ export interface Usuario {
   nome: string
   email: string
   cargo: Cargo
+  avatar_url?: string | null
   created_at: string
 }
 
@@ -93,6 +94,7 @@ export interface AuthContextType {
   loading: boolean
   login: (email: string, senha: string) => Promise<void>
   logout: () => Promise<void>
+  atualizarUsuario: (parcial: Partial<Usuario>) => void
 }
 
 // Contexto de tema

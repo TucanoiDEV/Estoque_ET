@@ -8,6 +8,7 @@ export const AuthContext = createContext<AuthContextType>({
   loading: true,
   login: async () => {},
   logout: async () => {},
+  atualizarUsuario: () => {},
 })
 
 export function useAuth(): AuthContextType {
@@ -111,5 +112,10 @@ export function useAuthProvider(): AuthContextType {
     setUsuario(null)
   }
 
-  return { usuario, loading, login, logout }
+  // Mescla mudanças no perfil local (ex.: nova foto) para refletir na UI na hora
+  function atualizarUsuario(parcial: Partial<Usuario>): void {
+    setUsuario((prev) => (prev ? { ...prev, ...parcial } : prev))
+  }
+
+  return { usuario, loading, login, logout, atualizarUsuario }
 }

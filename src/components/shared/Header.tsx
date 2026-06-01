@@ -1,7 +1,9 @@
-import { IconPackage, IconPlus, IconMinus, IconSquarePlus, IconSun, IconMoon, IconLogout, IconUser, IconMenu2 } from '@tabler/icons-react'
+import { useState, useRef, useEffect } from 'react'
+import { IconPackage, IconPlus, IconMinus, IconSquarePlus, IconSun, IconMoon, IconLogout, IconUser, IconUserEdit, IconMenu2, IconChevronDown } from '@tabler/icons-react'
 import { SyncIndicator } from './SyncIndicator'
 import { useAuth } from '../../hooks/useAuth'
 import { usePermissions } from '../../hooks/usePermissions'
+import { EditarPerfilModal } from '../Perfil/EditarPerfilModal'
 
 interface Props {
   temaEscuro: boolean
@@ -16,6 +18,22 @@ interface Props {
 export function Header({ temaEscuro, onToggleTema, sincronizando, onNovaEntrada, onNovaSaida, onNovoProduto, onToggleSidebar }: Props) {
   const { usuario, logout } = useAuth()
   const { canRegisterEntrada, canRegisterSaida, canEdit, cargo } = usePermissions()
+
+  const [menuAberto, setMenuAberto] = useState(false)
+  const [perfilAberto, setPerfilAberto] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Fecha o menu ao clicar fora
+  useEffect(() => {
+    if (!menuAberto) return
+    function aoClicarFora(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuAberto(false)
+      }
+    }
+    document.addEventListener('mousedown', aoClicarFora)
+    return () => document.removeEventListener('mousedown', aoClicarFora)
+  }, [menuAberto])
 
   const badgeCargo: Record<string, string> = {
     admin: 'bg-brand-purple/20 text-brand-purple',
@@ -90,25 +108,57 @@ export function Header({ temaEscuro, onToggleTema, sincronizando, onNovaEntrada,
         {temaEscuro ? <IconSun size={18} /> : <IconMoon size={18} />}
       </button>
 
-      {/* Info do usuário + logout */}
-      <div className="flex items-center gap-2 pl-2 border-l border-dark-border">
-        <div className="hidden sm:flex flex-col items-end">
-          <span className="text-xs font-medium text-white leading-none">{usuario?.nome}</span>
-          <span className={`text-[10px] mt-0.5 px-1.5 py-0.5 rounded-full font-medium ${badgeCargo[cargo ?? 'visualizador']}`}>
-            {cargo}
-          </span>
-        </div>
-        <div className="w-7 h-7 bg-dark-border rounded-full flex items-center justify-center">
-          <IconUser size={14} className="text-gray-400" />
-        </div>
+      {/* Perfil do usuário (clique abre o menu) */}
+      <div ref={menuRef} className="relative pl-2 border-l border-dark-border">
         <button
-          onClick={logout}
-          title="Sair"
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand-red hover:bg-brand-red/10 transition-colors"
+          onClick={() => setMenuAberto((v) => !v)}
+          title="Perfil"
+          aria-haspopup="menu"
+          aria-expanded={menuAberto}
+          className="flex items-center gap-2 rounded-lg p-1 hover:bg-dark-hover transition-colors"
         >
-          <IconLogout size={18} />
+          <div className="hidden sm:flex flex-col items-end">
+            <span className="text-xs font-medium text-white leading-none">{usuario?.nome}</span>
+            <span className={`text-[10px] mt-0.5 px-1.5 py-0.5 rounded-full font-medium ${badgeCargo[cargo ?? 'visualizador']}`}>
+              {cargo}
+            </span>
+          </div>
+          <div className="w-7 h-7 bg-dark-border rounded-full flex items-center justify-center overflow-hidden shrink-0">
+            {usuario?.avatar_url ? (
+              <img src={usuario.avatar_url} alt="Foto de perfil" className="w-full h-full object-cover" />
+            ) : (
+              <IconUser size={14} className="text-gray-400" />
+            )}
+          </div>
+          <IconChevronDown size={14} className={`text-gray-400 transition-transform ${menuAberto ? 'rotate-180' : ''}`} />
         </button>
+
+        {menuAberto && (
+          <div
+            role="menu"
+            className="absolute right-0 top-full mt-2 w-48 bg-dark-card border border-dark-border rounded-xl shadow-2xl py-1.5 z-50"
+          >
+            <button
+              role="menuitem"
+              onClick={() => { setMenuAberto(false); setPerfilAberto(true) }}
+              className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-dark-hover transition-colors"
+            >
+              <IconUserEdit size={16} className="text-brand-blue" />
+              Editar Perfil
+            </button>
+            <button
+              role="menuitem"
+              onClick={() => { setMenuAberto(false); logout() }}
+              className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-300 hover:text-brand-red hover:bg-brand-red/10 transition-colors"
+            >
+              <IconLogout size={16} />
+              Sair
+            </button>
+          </div>
+        )}
       </div>
+
+      {perfilAberto && <EditarPerfilModal onFechar={() => setPerfilAberto(false)} />}
     </header>
   )
 }
