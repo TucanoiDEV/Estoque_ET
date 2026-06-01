@@ -23,10 +23,10 @@ interface Props {
 type ModoGrafico = 'periodo' | 'mes' | 'intervalo'
 
 const OPCOES_PERIODO = [
-  { label: '3M', meses: 3 },
-  { label: '6M', meses: 6 },
-  { label: '12M', meses: 12 },
-  { label: '24M', meses: 24 },
+  { label: '3M', meses: 3, descricao: 'Exibe os últimos 3 meses' },
+  { label: '6M', meses: 6, descricao: 'Exibe os últimos 6 meses' },
+  { label: '12M', meses: 12, descricao: 'Exibe os últimos 12 meses' },
+  { label: '24M', meses: 24, descricao: 'Exibe os últimos 24 meses' },
 ]
 
 const LABELS_MODO: Record<ModoGrafico, string> = { periodo: 'Período', mes: 'Mês', intervalo: 'Intervalo' }
@@ -379,13 +379,20 @@ function ControleSecundario({
     return (
       <div className="flex gap-1">
         {OPCOES_PERIODO.map((op) => (
-          <button
-            key={op.meses}
-            onClick={() => onChange({ periodo: op.meses })}
-            className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${state.periodo === op.meses ? ativo : 'bg-dark-hover text-gray-400 hover:text-white'}`}
-          >
-            {op.label}
-          </button>
+          <div key={op.meses} className="relative group">
+            <button
+              onClick={() => onChange({ periodo: op.meses })}
+              className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${state.periodo === op.meses ? ativo : 'bg-dark-hover text-gray-400 hover:text-white'}`}
+            >
+              {op.label}
+            </button>
+            <div
+              role="tooltip"
+              className="pointer-events-none absolute top-full right-0 mt-2 z-50 whitespace-nowrap rounded-md border border-dark-border bg-dark-card px-2.5 py-1.5 text-xs text-gray-300 shadow-xl opacity-0 translate-y-1 transition-all duration-150 group-hover:opacity-100 group-hover:translate-y-0"
+            >
+              {op.descricao}
+            </div>
+          </div>
         ))}
       </div>
     )
