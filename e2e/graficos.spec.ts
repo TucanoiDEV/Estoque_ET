@@ -10,12 +10,11 @@ async function loginAdmin(page: Page) {
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15_000 })
 }
 
-test('Dashboard: os 5 gráficos aparecem na aba Gráficos', async ({ page }) => {
+test('Dashboard: os gráficos aparecem na aba Gráficos', async ({ page }) => {
   await loginAdmin(page)
   // A sub-aba Gráficos é a padrão
-  await expect(page.getByRole('heading', { name: 'Entradas mensais' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Entradas por Período' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Saídas por Período' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Top 5 produtos' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Entradas anuais' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Saídas mensais' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Produtos mais vendidos' })).toBeVisible()
 })

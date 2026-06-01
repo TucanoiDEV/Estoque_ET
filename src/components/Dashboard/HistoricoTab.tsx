@@ -1,6 +1,4 @@
 import { useState, useMemo } from 'react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -10,6 +8,7 @@ import {
   IconFilter,
   IconX,
 } from '@tabler/icons-react'
+import { formatarData } from '../../utils/data'
 import type { Entrada, Saida } from '../../types'
 
 interface Props {
@@ -322,7 +321,7 @@ export function HistoricoTab({ entradas, saidas, loading }: Props) {
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-gray-300 whitespace-nowrap">
-                      {format(new Date(r.data), 'dd/MM/yyyy', { locale: ptBR })}
+                      {formatarData(r.data)}
                     </td>
                     <td className="px-5 py-3.5 text-white font-medium whitespace-nowrap">{r.produto}</td>
                     <td className="px-5 py-3.5 text-gray-400 whitespace-nowrap">{r.anotacao}</td>

@@ -78,11 +78,11 @@ test.describe('3. Dashboard', () => {
 
   test('sub-abas Gráficos / Relatórios / Histórico funcionam', async ({ page }) => {
     await page.getByRole('button', { name: 'Gráficos' }).click()
-    await expect(page.getByText('Entradas mensais')).toBeVisible()
+    await expect(page.getByText('Entradas por Período')).toBeVisible()
     await page.getByRole('button', { name: 'Relatórios' }).click()
     await expect(page.getByText('Relatórios disponíveis')).toBeVisible()
     await page.getByRole('button', { name: 'Histórico' }).click()
-    await expect(page.getByText(/Histórico de compras/)).toBeVisible()
+    await expect(page.getByText(/Histórico de movimentações/)).toBeVisible()
   })
 })
 

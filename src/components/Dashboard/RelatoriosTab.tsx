@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { IconFileTypePdf, IconDownload, IconLoader2 } from '@tabler/icons-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatarData } from '../../utils/data'
 import type { ProdutoComEstoque, Entrada, Fornecedor } from '../../types'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useToast } from '../shared/Toast'
@@ -103,7 +104,7 @@ export function RelatoriosTab({ produtos, entradas, fornecedores, loading }: Pro
           startY: 35,
           head: [['Data', 'Produto', 'Fornecedor', 'Qtd.', 'Total', 'Status']],
           body: entradasMes.map((e) => [
-            format(new Date(e.data_recebimento), 'dd/MM/yyyy'),
+            formatarData(e.data_recebimento),
             (e.produto as any)?.nome ?? '—',
             (e.fornecedor as any)?.nome ?? '—',
             e.quantidade,

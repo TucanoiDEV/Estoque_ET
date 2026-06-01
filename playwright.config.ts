@@ -15,6 +15,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     trace: 'off',
     locale: 'pt-BR',
+    timezoneId: 'America/Sao_Paulo',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 })
