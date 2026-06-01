@@ -91,13 +91,11 @@ function AppLayout() {
   const {
     produtos,
     entradas,
+    saidas,
     fornecedores,
     loading,
     metricas,
-    dadosGraficoMensal,
     topProdutos,
-    dadosEntradasAnual,
-    dadosSaidasMensal,
     topProdutosVendidos,
     recarregar,
     recarregarProdutos,
@@ -163,10 +161,9 @@ function AppLayout() {
 
                 {subAbaDash === 'graficos' && (
                   <GraficosTab
-                    dadosMensais={dadosGraficoMensal}
+                    entradas={entradas}
+                    saidas={saidas}
                     topProdutos={topProdutos}
-                    dadosAnuais={dadosEntradasAnual}
-                    dadosSaidas={dadosSaidasMensal}
                     topVendidos={topProdutosVendidos}
                     loading={loading}
                   />
