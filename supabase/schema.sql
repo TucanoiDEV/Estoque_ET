@@ -206,7 +206,7 @@ CREATE POLICY "fornecedores_select"
 CREATE POLICY "fornecedores_insert"
   ON public.fornecedores FOR INSERT
   TO authenticated
-  WITH CHECK (public.get_meu_cargo() IN ('admin', 'operador'));
+  WITH CHECK (public.get_meu_cargo() = 'admin');
 
 CREATE POLICY "fornecedores_update"
   ON public.fornecedores FOR UPDATE
@@ -233,12 +233,12 @@ CREATE POLICY "produtos_select"
 CREATE POLICY "produtos_insert"
   ON public.produtos FOR INSERT
   TO authenticated
-  WITH CHECK (public.get_meu_cargo() IN ('admin', 'operador'));
+  WITH CHECK (public.get_meu_cargo() = 'admin');
 
 CREATE POLICY "produtos_update"
   ON public.produtos FOR UPDATE
   TO authenticated
-  USING (public.get_meu_cargo() IN ('admin', 'operador'));
+  USING (public.get_meu_cargo() = 'admin');
 
 CREATE POLICY "produtos_delete"
   ON public.produtos FOR DELETE
@@ -260,12 +260,12 @@ CREATE POLICY "estoque_select"
 CREATE POLICY "estoque_insert"
   ON public.estoque FOR INSERT
   TO authenticated
-  WITH CHECK (public.get_meu_cargo() IN ('admin', 'operador'));
+  WITH CHECK (public.get_meu_cargo() = 'admin');
 
 CREATE POLICY "estoque_update"
   ON public.estoque FOR UPDATE
   TO authenticated
-  USING (public.get_meu_cargo() IN ('admin', 'operador'));
+  USING (public.get_meu_cargo() = 'admin');
 
 CREATE POLICY "estoque_delete"
   ON public.estoque FOR DELETE
@@ -287,7 +287,7 @@ CREATE POLICY "entradas_select"
 CREATE POLICY "entradas_insert"
   ON public.entradas FOR INSERT
   TO authenticated
-  WITH CHECK (public.get_meu_cargo() IN ('admin', 'operador'));
+  WITH CHECK (public.get_meu_cargo() = 'admin');
 
 CREATE POLICY "entradas_update"
   ON public.entradas FOR UPDATE
@@ -314,7 +314,7 @@ CREATE POLICY "saidas_select"
 CREATE POLICY "saidas_insert"
   ON public.saidas FOR INSERT
   TO authenticated
-  WITH CHECK (public.get_meu_cargo() IN ('admin', 'operador'));
+  WITH CHECK (public.get_meu_cargo() = 'admin');
 
 CREATE POLICY "saidas_update"
   ON public.saidas FOR UPDATE
