@@ -1,1 +1,17 @@
+# Dependências
 node_modules
+
+# Saída de build (gerada por `npm run build` / Vercel)
+dist
+
+# Variáveis de ambiente — NUNCA versionar segredos. Use .env.example como modelo.
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# Saídas transitórias de teste (Playwright)
+test-results
+playwright-report
