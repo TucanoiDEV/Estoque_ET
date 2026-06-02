@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test'
+import { adicionarNoCombo } from './helpers/combo'
 
 const ADMIN = { email: 'admin@armazemmachado.demo', senha: 'Admin@123' }
 
@@ -13,25 +14,22 @@ async function loginAdmin(page: Page) {
 test('Novo produto: adicionar uma cor nova no dropdown', async ({ page }) => {
   await loginAdmin(page)
   await page.getByRole('button', { name: 'Novo produto' }).click()
-  await expect(page.getByText('Cadastrar novo produto')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Cadastrar novo produto' })).toBeVisible()
 
-  // Clica no "+" do campo Cor, digita e confirma
-  await page.getByRole('button', { name: 'Adicionar cor' }).click()
-  const input = page.getByPlaceholder('Nova cor (ex.: Laranja)')
-  await input.fill('Magenta')
-  await input.press('Enter')
-
-  // A cor nova deve estar selecionada no dropdown
-  const corSelect = page.locator('select').filter({ hasText: 'Magenta' })
-  await expect(corSelect).toHaveValue('Magenta')
+  // Combo de Cor mostra "Sem cor"; adiciona "Magenta" (persiste no localStorage)
+  await adicionarNoCombo(page, 'Sem cor', 'Magenta')
+  // A cor nova fica selecionada (o gatilho passa a mostrar "Magenta")
+  await expect(page.getByRole('button', { name: 'Magenta' })).toBeVisible()
 })
 
-test('Nova entrada: campo Fornecedor tem botão de adicionar', async ({ page }) => {
+test('Nova entrada: campo Fornecedor permite adicionar', async ({ page }) => {
   await loginAdmin(page)
   await page.getByRole('button', { name: 'Nova entrada' }).click()
   await expect(page.getByText('Nova entrada de estoque')).toBeVisible()
 
-  // O botão de adicionar fornecedor abre o campo de texto
-  await page.getByRole('button', { name: 'Adicionar fornecedor' }).click()
-  await expect(page.getByPlaceholder('Nome do novo fornecedor...')).toBeVisible()
+  // Abre o combo de Fornecedor ("Sem fornecedor") e digita um nome novo
+  await page.getByRole('button', { name: 'Sem fornecedor' }).click()
+  await page.getByTestId('combobox-busca').fill('Fornecedor XYZ')
+  // A opção de adicionar aparece (não confirmamos, para não gravar no banco)
+  await expect(page.getByRole('button', { name: 'Adicionar "Fornecedor XYZ"' })).toBeVisible()
 })

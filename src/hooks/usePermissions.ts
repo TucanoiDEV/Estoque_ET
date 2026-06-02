@@ -10,17 +10,19 @@ export function usePermissions() {
   const isOperador = () => cargo === 'operador'
   const isVisualizador = () => cargo === 'visualizador'
 
-  const canEdit = () => cargo === 'admin' || cargo === 'operador'
+  // Modelo de cargos: somente admin executa ações (escrita/gestão/exportação).
+  // Operador e Visualizador são somente-leitura (ver dashboard e estoque).
+  const canEdit = () => cargo === 'admin'
   const canDelete = () => cargo === 'admin'
   const canExport = () => cargo === 'admin'
-  const canExportLimitado = () => cargo === 'admin' || cargo === 'operador'
+  const canExportLimitado = () => cargo === 'admin'
   const canManageUsers = () => cargo === 'admin'
   const canViewReports = () => cargo === 'admin'
-  const canViewOwnReports = () => cargo === 'admin' || cargo === 'operador'
-  const canRegisterEntrada = () => cargo === 'admin' || cargo === 'operador'
-  const canRegisterSaida = () => cargo === 'admin' || cargo === 'operador'
+  const canViewOwnReports = () => cargo === 'admin'
+  const canRegisterEntrada = () => cargo === 'admin'
+  const canRegisterSaida = () => cargo === 'admin'
   const canManageFornecedores = () => cargo === 'admin'
-  const canCadastrarFornecedor = () => cargo === 'admin' || cargo === 'operador'
+  const canCadastrarFornecedor = () => cargo === 'admin'
   const canChangeSettings = () => cargo === 'admin'
   const canConfigureIA = () => cargo === 'admin'
 

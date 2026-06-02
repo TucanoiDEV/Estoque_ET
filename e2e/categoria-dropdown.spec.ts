@@ -1,30 +1,24 @@
 import { test, expect, Page } from '@playwright/test'
+import { adicionarNoCombo } from './helpers/combo'
 
 const ADMIN = { email: 'admin@armazemmachado.demo', senha: 'Admin@123' }
 
-async function abrirNovoProduto(page: Page) {
+async function loginAdmin(page: Page) {
   await page.goto('/login')
   await page.fill('#email', ADMIN.email)
   await page.fill('#senha', ADMIN.senha)
   await page.click('button[type=submit]')
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15_000 })
-  await page.getByRole('button', { name: 'Novo produto' }).click()
-  await expect(page.getByRole('heading', { name: 'Cadastrar novo produto' })).toBeVisible()
 }
 
-test('Novo produto: categoria é dropdown com botão de adicionar', async ({ page }) => {
-  await abrirNovoProduto(page)
+test('Novo produto: categoria é dropdown pesquisável com adicionar', async ({ page }) => {
+  await loginAdmin(page)
+  await page.getByRole('button', { name: 'Novo produto' }).click()
+  await expect(page.getByRole('heading', { name: 'Cadastrar novo produto' })).toBeVisible()
 
-  // Botão de adicionar categoria existe e abre o campo de texto
-  await page.getByRole('button', { name: 'Adicionar categoria' }).click()
-  const input = page.getByPlaceholder('Nova categoria (ex.: Lona PVC)')
-  await expect(input).toBeVisible()
-
-  // Adiciona uma categoria nova e ela fica selecionada
-  await input.fill('Categoria Teste')
-  await input.press('Enter')
-  const select = page.locator('select').filter({ hasText: 'Categoria Teste' })
-  await expect(select).toHaveValue('Categoria Teste')
+  // Adiciona uma categoria nova pelo combo (gatilho mostra "Sem categoria")
+  await adicionarNoCombo(page, 'Sem categoria', 'Categoria Teste')
+  await expect(page.getByRole('button', { name: 'Categoria Teste' })).toBeVisible()
 
   // Limpa: a categoria persiste no banco, então remove via Configurações
   await page.getByRole('button', { name: 'Cancelar' }).click()

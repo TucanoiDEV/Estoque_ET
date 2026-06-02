@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test'
+import { escolherNoCombo } from './helpers/combo'
 
 const ADMIN = { email: 'admin@armazemmachado.demo', senha: 'Admin@123' }
 const OPERADOR = { email: 'operador@armazemmachado.demo', senha: 'Operador@123' }
@@ -37,7 +38,9 @@ test.describe('1. Autenticação', () => {
 
   test('logout volta para a tela de login', async ({ page }) => {
     await loginEAguardarApp(page, ADMIN.email, ADMIN.senha)
-    await page.getByRole('button', { name: 'Sair' }).click()
+    // O logout fica no menu suspenso do perfil
+    await page.locator('button[aria-haspopup="menu"]').click()
+    await page.getByRole('menuitem', { name: 'Sair' }).click()
     await expect(page.getByText('Entrar na sua conta')).toBeVisible({ timeout: 15_000 })
   })
 
@@ -94,7 +97,7 @@ test.describe('4. Nova entrada', () => {
     await page.getByRole('button', { name: 'Nova entrada' }).click()
     await expect(page.getByText('Nova entrada de estoque')).toBeVisible()
     // Seleciona o primeiro produto real
-    await page.locator('select').first().selectOption({ index: 1 })
+    await escolherNoCombo(page, /Selecione um produto/, 'Cabo', /Cabo USB-C/)
     await page.locator('input[inputmode="numeric"]').first().fill('3') // quantidade
     // Total deve refletir quantidade × custo (algum valor em R$)
     await expect(page.getByText('Total da entrada')).toBeVisible()

@@ -7,6 +7,8 @@ import { useToast } from '../shared/Toast'
 import { sanitizarNumero, paraNumero } from '../../utils/numero'
 import { useLista } from '../../hooks/useLista'
 import { SelectComAdicionar } from '../shared/SelectComAdicionar'
+import { ComboBox } from '../shared/ComboBox'
+import { infoUnidade } from '../../utils/unidade'
 import type { Produto, Fornecedor, FormNovaEntrada } from '../../types'
 
 interface Props {
@@ -54,7 +56,7 @@ export function NovaEntradaModal({ onFechar, onSalvo }: Props) {
   useEffect(() => {
     async function carregar() {
       const [{ data: p }, { data: f }] = await Promise.all([
-        db.produtos().select('id, codigo, nome, custo_unitario').order('nome'),
+        db.produtos().select('id, codigo, nome, unidade, custo_unitario').order('nome'),
         db.fornecedores().select('id, nome').order('nome'),
       ])
       setProdutos((p as Produto[]) ?? [])
@@ -79,6 +81,10 @@ export function NovaEntradaModal({ onFechar, onSalvo }: Props) {
   }
 
   const total = paraNumero(form.quantidade) * paraNumero(form.custo_unitario)
+
+  // Unidade do produto selecionado — rotula o custo (ex.: "Custo por metro" / R$/m)
+  const produtoSelecionado = produtos.find((p) => p.id === form.produto_id)
+  const custoInfo = infoUnidade(produtoSelecionado?.unidade)
 
   function validar(): boolean {
     const novosErros: typeof erros = {}
@@ -163,26 +169,16 @@ export function NovaEntradaModal({ onFechar, onSalvo }: Props) {
         {/* Formulário */}
         <form onSubmit={salvar} className="px-6 py-5 space-y-4">
           {/* Produto */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">
-              Produto <span className="text-brand-red">*</span>
-            </label>
-            <select
-              value={form.produto_id}
-              onChange={(e) => selecionarProduto(e.target.value)}
-              className={`w-full bg-dark-bg border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors ${
-                erros.produto_id ? 'border-brand-red' : 'border-dark-border'
-              }`}
-            >
-              <option value="">Selecione um produto...</option>
-              {produtos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  [{p.codigo}] {p.nome}
-                </option>
-              ))}
-            </select>
-            {erros.produto_id && <p className="text-xs text-brand-red mt-1">{erros.produto_id}</p>}
-          </div>
+          <ComboBox
+            label="Produto"
+            obrigatorio
+            value={form.produto_id}
+            opcoes={produtos.map((p) => ({ value: p.id, label: `[${p.codigo}] ${p.nome}` }))}
+            onChange={selecionarProduto}
+            placeholder="Selecione um produto..."
+            placeholderBusca="Buscar produto..."
+            erro={erros.produto_id}
+          />
 
           {/* Quantidade + Custo */}
           <div className="grid grid-cols-2 gap-3">
@@ -202,15 +198,22 @@ export function NovaEntradaModal({ onFechar, onSalvo }: Props) {
               {erros.quantidade && <p className="text-xs text-brand-red mt-1">{erros.quantidade}</p>}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Custo unitário (R$)</label>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={form.custo_unitario}
-                onChange={(e) => set('custo_unitario', sanitizarNumero(e.target.value, true))}
-                placeholder="0,00"
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors"
-              />
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                Custo por {custoInfo.nome}
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={form.custo_unitario}
+                  onChange={(e) => set('custo_unitario', sanitizarNumero(e.target.value, true))}
+                  placeholder="0,00"
+                  className="w-full bg-dark-bg border border-dark-border rounded-lg pl-3 pr-16 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 pointer-events-none">
+                  R$/{custoInfo.abrev}
+                </span>
+              </div>
             </div>
           </div>
 

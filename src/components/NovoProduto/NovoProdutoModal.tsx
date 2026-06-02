@@ -7,6 +7,8 @@ import { useLista } from '../../hooks/useLista'
 import { useCategorias } from '../../hooks/useCategorias'
 import { SelectComAdicionar, type Opcao } from '../shared/SelectComAdicionar'
 import { CORES_PADRAO } from '../../utils/listasPadrao'
+import { infoUnidade } from '../../utils/unidade'
+import { proximoCodigo } from '../../utils/codigo'
 import type { Fornecedor } from '../../types'
 
 interface Props {
@@ -15,7 +17,6 @@ interface Props {
 }
 
 interface FormProduto {
-  codigo: string
   nome: string
   categoria: string
   unidade: string
@@ -38,26 +39,9 @@ const UNIDADES = [
   { value: 'T', label: 'Tonelada (T)' },
 ]
 
-// Nome e abreviação por unidade — usados para rotular o custo conforme a medida
-const UNIDADE_INFO: Record<string, { nome: string; abrev: string }> = {
-  UN: { nome: 'unidade', abrev: 'un' },
-  KG: { nome: 'quilograma', abrev: 'kg' },
-  M: { nome: 'metro', abrev: 'm' },
-  L: { nome: 'litro', abrev: 'L' },
-  CX: { nome: 'caixa', abrev: 'cx' },
-  PC: { nome: 'pacote', abrev: 'pc' },
-  PR: { nome: 'par', abrev: 'par' },
-  T: { nome: 'tonelada', abrev: 't' },
-}
-
-function infoUnidade(unidade: string): { nome: string; abrev: string } {
-  return UNIDADE_INFO[unidade] ?? { nome: unidade.toLowerCase(), abrev: unidade.toLowerCase() }
-}
-
 const LOCAIS = ['Estoque A', 'Estoque B', 'Depósito', 'Câmara Fria', 'Área Externa']
 
 const FORM_INICIAL: FormProduto = {
-  codigo: '',
   nome: '',
   categoria: '',
   unidade: 'UN',
@@ -83,19 +67,25 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
   // Categorias: lista oficial do banco (mesma das Configurações) + as já usadas em produtos
   const categorias = useCategorias()
   const [categoriasExistentes, setCategoriasExistentes] = useState<string[]>([])
+  const [codigosExistentes, setCodigosExistentes] = useState<string[]>([])
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([])
   useEffect(() => {
     async function carregar() {
-      const { data } = await db.produtos().select('categoria')
+      const { data } = await db.produtos().select('categoria, codigo')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const distintas = [...new Set((data ?? []).map((p: any) => p.categoria).filter(Boolean))] as string[]
       setCategoriasExistentes(distintas)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setCodigosExistentes((data ?? []).map((p: any) => p.codigo).filter(Boolean) as string[])
 
       const { data: forn } = await db.fornecedores().select('id, nome').order('nome')
       setFornecedores((forn as Fornecedor[]) ?? [])
     }
     carregar()
   }, [])
+
+  // Código gerado automaticamente a partir da categoria (ex.: "Tecido" -> TEC-001)
+  const codigoGerado = proximoCodigo(form.categoria, codigosExistentes)
 
   const opcoesUnidade: Opcao[] = [
     ...UNIDADES,
@@ -119,7 +109,6 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
 
   function validar(): boolean {
     const novosErros: typeof erros = {}
-    if (!form.codigo.trim()) novosErros.codigo = 'Código é obrigatório'
     if (!form.nome.trim()) novosErros.nome = 'Nome é obrigatório'
     if (!form.unidade) novosErros.unidade = 'Selecione uma unidade'
     if (paraNumero(form.custo_unitario) < 0) novosErros.custo_unitario = 'Custo não pode ser negativo'
@@ -137,7 +126,7 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
       const { data: produto, error: erroProduto } = await db
         .produtos()
         .insert({
-          codigo: form.codigo.trim().toUpperCase(),
+          codigo: codigoGerado,
           nome: form.nome.trim(),
           categoria: form.categoria.trim() || null,
           unidade: form.unidade,
@@ -165,8 +154,7 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro desconhecido'
       if (msg.toLowerCase().includes('duplicate') || msg.toLowerCase().includes('unique')) {
-        setErros({ codigo: 'Este código já está em uso' })
-        mostrarToast('Código já existe. Use um código diferente.', 'erro')
+        mostrarToast(`O código "${codigoGerado}" já existe. Tente novamente.`, 'erro')
       } else {
         mostrarToast(`Erro ao cadastrar: ${msg}`, 'erro')
       }
@@ -196,22 +184,18 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
 
         {/* Formulário */}
         <form onSubmit={salvar} className="px-6 py-5 space-y-4">
-          {/* Código + Unidade */}
+          {/* Código (gerado) + Unidade */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                Código <span className="text-brand-red">*</span>
+                Código <span className="text-gray-600">(gerado)</span>
               </label>
-              <input
-                type="text"
-                value={form.codigo}
-                onChange={(e) => set('codigo', e.target.value)}
-                placeholder="EX-001"
-                className={`w-full bg-dark-bg border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors ${
-                  erros.codigo ? 'border-brand-red' : 'border-dark-border'
-                }`}
-              />
-              {erros.codigo && <p className="text-xs text-brand-red mt-1">{erros.codigo}</p>}
+              <div
+                title="Gerado automaticamente a partir da categoria"
+                className="w-full bg-dark-hover border border-dark-border rounded-lg px-3 py-2 text-sm font-mono text-gray-300 cursor-not-allowed select-none"
+              >
+                {codigoGerado}
+              </div>
             </div>
             <SelectComAdicionar
               label="Unidade de medida"

@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test'
+import { escolherNoCombo } from './helpers/combo'
 
 const ADMIN = { email: 'admin@armazemmachado.demo', senha: 'Admin@123' }
 
@@ -14,19 +15,18 @@ async function abrirNovoProduto(page: Page) {
 
 test('Novo produto: rótulo do custo muda conforme a unidade', async ({ page }) => {
   await abrirNovoProduto(page)
-  const unidade = page.locator('select').filter({ hasText: 'Unidade (UN)' })
 
   // Padrão UN
   await expect(page.getByText('Custo por unidade')).toBeVisible()
   await expect(page.getByText('R$/un')).toBeVisible()
 
-  // Troca para Metro
-  await unidade.selectOption('M')
+  // Troca para Metro (combo de unidade mostra "Unidade (UN)")
+  await escolherNoCombo(page, 'Unidade (UN)', 'Metro', 'Metro (M)')
   await expect(page.getByText('Custo por metro')).toBeVisible()
   await expect(page.getByText('R$/m', { exact: true })).toBeVisible()
 
-  // Troca para Quilograma
-  await unidade.selectOption('KG')
+  // Troca para Quilograma (agora o gatilho mostra "Metro (M)")
+  await escolherNoCombo(page, 'Metro (M)', 'Quilograma', 'Quilograma (KG)')
   await expect(page.getByText('Custo por quilograma')).toBeVisible()
   await expect(page.getByText('R$/kg')).toBeVisible()
 })

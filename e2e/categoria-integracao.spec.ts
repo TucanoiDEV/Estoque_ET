@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test'
+import { escolherNoCombo } from './helpers/combo'
 
 const ADMIN = { email: 'admin@armazemmachado.demo', senha: 'Admin@123' }
 const CAT = 'Cat Integra Teste'
@@ -22,12 +23,11 @@ test('Categoria das Configurações aparece no cadastro de produto', async ({ pa
   await page.getByPlaceholder('Nova categoria...').press('Enter')
   await expect(page.getByText(CAT, { exact: true })).toBeVisible() // chip
 
-  // Abre o cadastro de produto — a categoria deve estar no dropdown
+  // Abre o cadastro de produto — a categoria deve estar no combo (pesquisável)
   await page.getByRole('button', { name: 'Novo produto' }).click()
   await expect(page.getByRole('heading', { name: 'Cadastrar novo produto' })).toBeVisible()
-  const catSelect = page.locator('select').filter({ hasText: CAT })
-  await catSelect.selectOption(CAT)
-  await expect(catSelect).toHaveValue(CAT)
+  await escolherNoCombo(page, 'Sem categoria', CAT, CAT)
+  await expect(page.getByRole('button', { name: CAT, exact: true })).toBeVisible() // gatilho mostra a categoria
 
   // Fecha o modal e limpa: remove a categoria de teste das Configurações
   await page.getByRole('button', { name: 'Cancelar' }).click()

@@ -80,7 +80,7 @@ export function Header({ temaEscuro, onToggleTema, sincronizando, onNovaEntrada,
         <button
           onClick={onNovaEntrada}
           title="Registrar entrada de estoque"
-          className="flex items-center gap-1.5 bg-brand-green hover:bg-green-500 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-lg shadow-brand-green/20"
+          className="flex items-center gap-1.5 bg-brand-green hover:bg-green-600 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-lg shadow-brand-green/20"
         >
           <IconPlus size={16} />
           <span className="hidden md:inline">Nova entrada</span>

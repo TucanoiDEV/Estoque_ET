@@ -5,6 +5,8 @@ import { db } from '../../services/supabase'
 import { useToast } from '../shared/Toast'
 import { useAuth } from '../../hooks/useAuth'
 import { sanitizarNumero, paraNumero } from '../../utils/numero'
+import { infoUnidade } from '../../utils/unidade'
+import { ComboBox } from '../shared/ComboBox'
 import type { Produto } from '../../types'
 
 interface Props {
@@ -93,6 +95,9 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
   const estoqueApos = produtoSelecionado ? produtoSelecionado.quantidade_atual - quantidadeNum : 0
   const total = quantidadeNum * paraNumero(form.custo_unitario)
 
+  // Unidade do produto selecionado — rotula o custo (ex.: "Custo por metro" / R$/m)
+  const custoInfo = infoUnidade(produtoSelecionado?.unidade)
+
   function validar(): boolean {
     const novosErros: typeof erros = {}
     if (!form.produto_id) novosErros.produto_id = 'Selecione um produto'
@@ -165,26 +170,19 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
         {/* Formulário */}
         <form onSubmit={salvar} className="px-6 py-5 space-y-4">
           {/* Produto */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">
-              Produto <span className="text-brand-red">*</span>
-            </label>
-            <select
-              value={form.produto_id}
-              onChange={(e) => selecionarProduto(e.target.value)}
-              className={`w-full bg-dark-bg border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue transition-colors ${
-                erros.produto_id ? 'border-brand-red' : 'border-dark-border'
-              }`}
-            >
-              <option value="">Selecione um produto...</option>
-              {produtos.map((p) => (
-                <option key={p.id} value={p.id}>
-                  [{p.codigo}] {p.nome} — {p.quantidade_atual} {p.unidade} disponíveis
-                </option>
-              ))}
-            </select>
-            {erros.produto_id && <p className="text-xs text-brand-red mt-1">{erros.produto_id}</p>}
-          </div>
+          <ComboBox
+            label="Produto"
+            obrigatorio
+            value={form.produto_id}
+            opcoes={produtos.map((p) => ({
+              value: p.id,
+              label: `[${p.codigo}] ${p.nome} — ${p.quantidade_atual} ${p.unidade} disponíveis`,
+            }))}
+            onChange={selecionarProduto}
+            placeholder="Selecione um produto..."
+            placeholderBusca="Buscar produto..."
+            erro={erros.produto_id}
+          />
 
           {/* Estoque atual */}
           {produtoSelecionado && (
@@ -215,17 +213,24 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
               {erros.quantidade && <p className="text-xs text-brand-red mt-1">{erros.quantidade}</p>}
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Custo unitário (R$)</label>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={form.custo_unitario}
-                onChange={(e) => set('custo_unitario', sanitizarNumero(e.target.value, true))}
-                placeholder="0,00"
-                className={`w-full bg-dark-bg border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors ${
-                  erros.custo_unitario ? 'border-brand-red' : 'border-dark-border'
-                }`}
-              />
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                Custo por {custoInfo.nome}
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={form.custo_unitario}
+                  onChange={(e) => set('custo_unitario', sanitizarNumero(e.target.value, true))}
+                  placeholder="0,00"
+                  className={`w-full bg-dark-bg border rounded-lg pl-3 pr-16 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors ${
+                    erros.custo_unitario ? 'border-brand-red' : 'border-dark-border'
+                  }`}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 pointer-events-none">
+                  R$/{custoInfo.abrev}
+                </span>
+              </div>
               {erros.custo_unitario && <p className="text-xs text-brand-red mt-1">{erros.custo_unitario}</p>}
             </div>
           </div>

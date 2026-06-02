@@ -133,10 +133,11 @@ supabase/
 | ----------------------- | :---: | :------: | :----------: |
 | Ver dashboard           | ✅    | ✅       | ✅           |
 | Ver estoque             | ✅    | ✅       | ✅           |
-| Registrar entrada       | ✅    | ✅       | ❌           |
-| Editar produto          | ✅    | ✅       | ❌           |
+| Registrar entrada       | ✅    | ❌       | ❌           |
+| Registrar saída         | ✅    | ❌       | ❌           |
+| Editar produto          | ✅    | ❌       | ❌           |
 | Excluir produto         | ✅    | ❌       | ❌           |
-| Exportar relatórios     | ✅    | Limitado | ❌           |
+| Exportar relatórios     | ✅    | ❌       | ❌           |
 | Gerenciar usuários      | ✅    | ❌       | ❌           |
 | Alterar configurações   | ✅    | ❌       | ❌           |
 | Configurar API Claude   | ✅    | ❌       | ❌           |
