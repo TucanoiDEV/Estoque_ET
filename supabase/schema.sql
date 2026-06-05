@@ -29,8 +29,57 @@ CREATE TABLE IF NOT EXISTS public.fornecedores (
   contato              TEXT,
   prazo_entrega        INTEGER,
   condicoes_pagamento  TEXT,
+  -- Dados básicos
+  representante        TEXT,
+  cnpj                 TEXT,
+  inscricao_estadual   TEXT,
+  telefone             TEXT,
+  whatsapp             TEXT,
+  email                TEXT,
+  site                 TEXT,
+  ativo                BOOLEAN DEFAULT TRUE,
+  -- Endereço
+  cep                  TEXT,
+  endereco             TEXT,
+  numero               TEXT,
+  complemento          TEXT,
+  bairro               TEXT,
+  cidade               TEXT,
+  estado               TEXT,
+  -- Comercial
+  pedido_minimo        NUMERIC(10,2),
+  valor_minimo_compra  NUMERIC(10,2),
+  desconto_padrao      NUMERIC(5,2),
+  tipo_frete           TEXT,
+  frete_gratis_acima   NUMERIC(10,2),
+  -- Observações internas
+  observacoes          TEXT,
   created_at           TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Upgrade idempotente para bancos criados antes do módulo de fornecedores completo
+ALTER TABLE public.fornecedores
+  ADD COLUMN IF NOT EXISTS representante         TEXT,
+  ADD COLUMN IF NOT EXISTS cnpj                  TEXT,
+  ADD COLUMN IF NOT EXISTS inscricao_estadual    TEXT,
+  ADD COLUMN IF NOT EXISTS telefone              TEXT,
+  ADD COLUMN IF NOT EXISTS whatsapp              TEXT,
+  ADD COLUMN IF NOT EXISTS email                 TEXT,
+  ADD COLUMN IF NOT EXISTS site                  TEXT,
+  ADD COLUMN IF NOT EXISTS ativo                 BOOLEAN DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS cep                   TEXT,
+  ADD COLUMN IF NOT EXISTS endereco              TEXT,
+  ADD COLUMN IF NOT EXISTS numero                TEXT,
+  ADD COLUMN IF NOT EXISTS complemento           TEXT,
+  ADD COLUMN IF NOT EXISTS bairro                TEXT,
+  ADD COLUMN IF NOT EXISTS cidade                TEXT,
+  ADD COLUMN IF NOT EXISTS estado                TEXT,
+  ADD COLUMN IF NOT EXISTS pedido_minimo         NUMERIC(10,2),
+  ADD COLUMN IF NOT EXISTS valor_minimo_compra   NUMERIC(10,2),
+  ADD COLUMN IF NOT EXISTS desconto_padrao       NUMERIC(5,2),
+  ADD COLUMN IF NOT EXISTS tipo_frete            TEXT,
+  ADD COLUMN IF NOT EXISTS frete_gratis_acima    NUMERIC(10,2),
+  ADD COLUMN IF NOT EXISTS observacoes           TEXT;
 
 CREATE TABLE IF NOT EXISTS public.produtos (
   id                   UUID    DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -47,6 +96,21 @@ CREATE TABLE IF NOT EXISTS public.produtos (
 );
 
 CREATE INDEX IF NOT EXISTS idx_produtos_fornecedor ON public.produtos(fornecedor_id);
+
+-- Produtos fornecidos: relaciona produtos a fornecedores (N:N). O fornecedor
+-- "principal" de um produto continua em produtos.fornecedor_id; esta tabela
+-- registra os demais vínculos (fornecedores secundários / alternativos).
+CREATE TABLE IF NOT EXISTS public.fornecedor_produtos (
+  id             UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  fornecedor_id  UUID NOT NULL REFERENCES public.fornecedores(id) ON DELETE CASCADE,
+  produto_id     UUID NOT NULL REFERENCES public.produtos(id)     ON DELETE CASCADE,
+  principal      BOOLEAN DEFAULT FALSE,
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (fornecedor_id, produto_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_fornecedor_produtos_fornecedor ON public.fornecedor_produtos(fornecedor_id);
+CREATE INDEX IF NOT EXISTS idx_fornecedor_produtos_produto    ON public.fornecedor_produtos(produto_id);
 
 CREATE TABLE IF NOT EXISTS public.estoque (
   id          UUID    DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -94,9 +158,10 @@ CREATE TABLE IF NOT EXISTS public.configuracoes (
 
 -- ─── Habilitar RLS ────────────────────────────────────────────────────────────
 
-ALTER TABLE public.usuarios      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.fornecedores  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.produtos      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.usuarios            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fornecedores        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fornecedor_produtos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.produtos            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.estoque       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.entradas      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.saidas        ENABLE ROW LEVEL SECURITY;
@@ -106,9 +171,10 @@ ALTER TABLE public.configuracoes ENABLE ROW LEVEL SECURITY;
 
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.usuarios      TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.fornecedores  TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.produtos      TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.usuarios            TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.fornecedores        TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.fornecedor_produtos TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.produtos            TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.estoque       TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.entradas      TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.saidas        TO authenticated;
@@ -215,6 +281,33 @@ CREATE POLICY "fornecedores_update"
 
 CREATE POLICY "fornecedores_delete"
   ON public.fornecedores FOR DELETE
+  TO authenticated
+  USING (public.get_meu_cargo() = 'admin');
+
+-- ─── Policies: fornecedor_produtos ────────────────────────────────────────────
+
+DROP POLICY IF EXISTS "fornecedor_produtos_select" ON public.fornecedor_produtos;
+DROP POLICY IF EXISTS "fornecedor_produtos_insert" ON public.fornecedor_produtos;
+DROP POLICY IF EXISTS "fornecedor_produtos_update" ON public.fornecedor_produtos;
+DROP POLICY IF EXISTS "fornecedor_produtos_delete" ON public.fornecedor_produtos;
+
+CREATE POLICY "fornecedor_produtos_select"
+  ON public.fornecedor_produtos FOR SELECT
+  TO authenticated
+  USING (true);
+
+CREATE POLICY "fornecedor_produtos_insert"
+  ON public.fornecedor_produtos FOR INSERT
+  TO authenticated
+  WITH CHECK (public.get_meu_cargo() = 'admin');
+
+CREATE POLICY "fornecedor_produtos_update"
+  ON public.fornecedor_produtos FOR UPDATE
+  TO authenticated
+  USING (public.get_meu_cargo() = 'admin');
+
+CREATE POLICY "fornecedor_produtos_delete"
+  ON public.fornecedor_produtos FOR DELETE
   TO authenticated
   USING (public.get_meu_cargo() = 'admin');
 

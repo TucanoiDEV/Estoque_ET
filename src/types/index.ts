@@ -43,13 +43,59 @@ export interface ProdutoComEstoque extends Produto {
   status: StatusEstoque
 }
 
+export type TipoFrete = 'CIF' | 'FOB' | 'gratis' | 'combinar'
+
 export interface Fornecedor {
   id: string
   nome: string
   contato: string | null
   prazo_entrega: number | null
   condicoes_pagamento: string | null
+  // Dados básicos
+  representante: string | null
+  cnpj: string | null
+  inscricao_estadual: string | null
+  telefone: string | null
+  whatsapp: string | null
+  email: string | null
+  site: string | null
+  ativo: boolean
+  // Endereço
+  cep: string | null
+  endereco: string | null
+  numero: string | null
+  complemento: string | null
+  bairro: string | null
+  cidade: string | null
+  estado: string | null
+  // Comercial
+  pedido_minimo: number | null
+  valor_minimo_compra: number | null
+  desconto_padrao: number | null
+  tipo_frete: TipoFrete | null
+  frete_gratis_acima: number | null
+  // Observações internas
+  observacoes: string | null
   created_at: string
+}
+
+// Vínculo produto ↔ fornecedor (tabela fornecedor_produtos)
+export interface FornecedorProduto {
+  id: string
+  fornecedor_id: string
+  produto_id: string
+  principal: boolean
+  created_at: string
+  produto?: Produto
+}
+
+// Métricas automáticas de um fornecedor, derivadas das entradas (compras).
+export interface IndicadoresFornecedor {
+  totalComprado: number
+  numeroCompras: number
+  ticketMedio: number
+  ultimaCompra: string | null
+  prazoEntregaInformado: number | null
 }
 
 export interface Entrada {

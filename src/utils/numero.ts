@@ -21,3 +21,8 @@ export function paraNumero(valor: string): number {
   const n = Number(valor)
   return Number.isFinite(n) ? n : 0
 }
+
+// Formata um valor como moeda brasileira (R$ 1.234,56). null/undefined → R$ 0,00.
+export function formatarMoeda(valor: number | null | undefined): string {
+  return (valor ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}

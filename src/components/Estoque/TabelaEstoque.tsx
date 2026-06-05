@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react'
-import { IconEdit, IconTrash, IconLoader2, IconPackageOff } from '@tabler/icons-react'
+import { IconEdit, IconTrash, IconLoader2, IconPackageOff, IconEye } from '@tabler/icons-react'
 import { db } from '../../services/supabase'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useToast } from '../shared/Toast'
 import { sanitizarNumero, paraNumero } from '../../utils/numero'
 import { FiltrosEstoque } from './FiltrosEstoque'
+import { ProdutoDetalheModal } from './ProdutoDetalheModal'
 import type { ProdutoComEstoque, StatusEstoque, Fornecedor, FiltrosEstoque as FiltrosType } from '../../types'
 
 interface Props {
@@ -162,6 +163,7 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
   const { canEdit, canDelete } = usePermissions()
   const { mostrarToast } = useToast()
   const [produtoEditando, setProdutoEditando] = useState<ProdutoComEstoque | null>(null)
+  const [produtoDetalhe, setProdutoDetalhe] = useState<ProdutoComEstoque | null>(null)
   const [excluindo, setExcluindo] = useState<string | null>(null)
   const [filtros, setFiltros] = useState<FiltrosType>({ busca: '', categoria: '', status: 'todos', medida: '', cor: '', fornecedor: '' })
 
@@ -241,6 +243,10 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
         />
       )}
 
+      {produtoDetalhe && (
+        <ProdutoDetalheModal produto={produtoDetalhe} onFechar={() => setProdutoDetalhe(null)} />
+      )}
+
       <div className="space-y-4">
         <FiltrosEstoque filtros={filtros} categorias={categorias} coresDisponiveis={coresDisponiveis} fornecedoresDisponiveis={fornecedoresDisponiveis} onChange={setFiltros} />
 
@@ -310,6 +316,13 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setProdutoDetalhe(produto)}
+                              title="Ver fornecedores e reposição"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand-purple hover:bg-brand-purple/10 transition-colors"
+                            >
+                              <IconEye size={15} />
+                            </button>
                             {canEdit() && (
                               <button
                                 onClick={() => setProdutoEditando(produto)}

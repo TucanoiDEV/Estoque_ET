@@ -20,12 +20,17 @@ test('Fornecedores: adicionar e excluir (round-trip)', async ({ page }) => {
   // Lista carrega os fornecedores do seed
   await expect(page.getByRole('cell', { name: 'TechParts Brasil' })).toBeVisible()
 
-  // Adiciona um fornecedor de teste
+  // Adiciona um fornecedor de teste (drawer com abas)
   const nome = 'TESTE E2E LTDA'
   await page.getByRole('button', { name: 'Novo fornecedor' }).click()
   await expect(page.getByRole('heading', { name: 'Novo fornecedor' })).toBeVisible()
   await page.getByPlaceholder('Ex: TechParts Brasil').fill(nome)
-  await page.getByRole('button', { name: 'Salvar' }).click()
+  await page.getByRole('button', { name: 'Cadastrar fornecedor' }).click()
+  // O drawer permanece aberto após salvar; fecha para voltar à lista
+  await page.getByRole('button', { name: 'Fechar' }).click()
+
+  // Filtra pela busca para localizar o novo fornecedor (independe da paginação)
+  await page.getByPlaceholder('Buscar por empresa ou representante...').fill(nome)
   await expect(page.getByRole('cell', { name: nome })).toBeVisible()
 
   // Exclui o fornecedor de teste (sem entradas vinculadas → deve excluir)
