@@ -13,11 +13,27 @@ import {
 import type { DadoGrafico, DadoProdutoMovimentado } from '../../types'
 
 interface Props {
-  entradas: { created_at: string; quantidade: number }[]
-  saidas: { created_at: string; quantidade: number }[]
+  entradas: { data_recebimento: string; quantidade: number }[]
+  saidas: { data_saida: string; quantidade: number }[]
   topProdutos: DadoProdutoMovimentado[]
   topVendidos: DadoProdutoMovimentado[]
   loading: boolean
+}
+
+// Registro normalizado para os gráficos: usa a DATA da movimentação (campo DATE,
+// sem fuso) — não o created_at (timestamp UTC de inserção), que jogava a
+// movimentação para o dia seguinte quando cadastrada à noite no Brasil (UTC-3).
+interface RegistroData {
+  data: string // 'YYYY-MM-DD'
+  quantidade: number
+}
+
+// Chaves de agrupamento sempre no fuso LOCAL (evita o off-by-one do toISOString).
+function chaveDia(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+function chaveMes(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
 type ModoGrafico = 'periodo' | 'mes' | 'intervalo'
@@ -31,33 +47,33 @@ const OPCOES_PERIODO = [
 
 const LABELS_MODO: Record<ModoGrafico, string> = { periodo: 'Período', mes: 'Mês', intervalo: 'Intervalo' }
 
-function serieMensal(registros: { created_at: string; quantidade: number }[], meses: number): DadoGrafico[] {
+function serieMensal(registros: RegistroData[], meses: number): DadoGrafico[] {
   const resultado: DadoGrafico[] = []
   for (let i = meses - 1; i >= 0; i--) {
     const d = new Date()
     d.setMonth(d.getMonth() - i)
-    const chave = d.toISOString().slice(0, 7)
+    const chave = chaveMes(d)
     const nomeMes = d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
-    const doMes = registros.filter((r) => r.created_at?.startsWith(chave))
+    const doMes = registros.filter((r) => r.data?.startsWith(chave))
     resultado.push({ mes: nomeMes, quantidade: doMes.reduce((acc, r) => acc + r.quantidade, 0), total: 0 })
   }
   return resultado
 }
 
-function serieDiaria(registros: { created_at: string; quantidade: number }[], anoMes: string): DadoGrafico[] {
+function serieDiaria(registros: RegistroData[], anoMes: string): DadoGrafico[] {
   const [ano, mes] = anoMes.split('-').map(Number)
   const diasNoMes = new Date(ano, mes, 0).getDate()
   const resultado: DadoGrafico[] = []
   for (let dia = 1; dia <= diasNoMes; dia++) {
     const chave = `${anoMes}-${String(dia).padStart(2, '0')}`
-    const doDia = registros.filter((r) => r.created_at?.startsWith(chave))
+    const doDia = registros.filter((r) => r.data?.startsWith(chave))
     resultado.push({ mes: String(dia).padStart(2, '0'), quantidade: doDia.reduce((acc, r) => acc + r.quantidade, 0), total: 0 })
   }
   return resultado
 }
 
 function serieIntervalo(
-  registros: { created_at: string; quantidade: number }[],
+  registros: RegistroData[],
   inicio: string,
   fim: string,
 ): DadoGrafico[] {
@@ -70,18 +86,18 @@ function serieIntervalo(
     for (let i = 0; i < diffDias; i++) {
       const d = new Date(start)
       d.setDate(d.getDate() + i)
-      const chave = d.toISOString().slice(0, 10)
+      const chave = chaveDia(d)
       const label = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
-      const doDia = registros.filter((r) => r.created_at?.startsWith(chave))
+      const doDia = registros.filter((r) => r.data?.startsWith(chave))
       resultado.push({ mes: label, quantidade: doDia.reduce((acc, r) => acc + r.quantidade, 0), total: 0 })
     }
   } else {
     const cur = new Date(start.getFullYear(), start.getMonth(), 1)
     const endMes = new Date(end.getFullYear(), end.getMonth(), 1)
     while (cur <= endMes) {
-      const chave = cur.toISOString().slice(0, 7)
+      const chave = chaveMes(cur)
       const label = cur.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
-      const qty = registros.filter((r) => r.created_at?.startsWith(chave)).reduce((acc, r) => acc + r.quantidade, 0)
+      const qty = registros.filter((r) => r.data?.startsWith(chave)).reduce((acc, r) => acc + r.quantidade, 0)
       resultado.push({ mes: label, quantidade: qty, total: 0 })
       cur.setMonth(cur.getMonth() + 1)
     }
@@ -89,10 +105,10 @@ function serieIntervalo(
   return resultado
 }
 
-function hojeStr() { return new Date().toISOString().slice(0, 10) }
-function mesAtualStr() { return new Date().toISOString().slice(0, 7) }
+function hojeStr() { return chaveDia(new Date()) }
+function mesAtualStr() { return chaveMes(new Date()) }
 function trintaDiasAtras() {
-  const d = new Date(); d.setDate(d.getDate() - 29); return d.toISOString().slice(0, 10)
+  const d = new Date(); d.setDate(d.getDate() - 29); return chaveDia(d)
 }
 
 const NOMES_MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -317,7 +333,7 @@ function usarBarrasParaModo(modo: ModoGrafico, inicio: string, fim: string): boo
 }
 
 function calcularDados(
-  registros: { created_at: string; quantidade: number }[],
+  registros: RegistroData[],
   state: GraficoState,
 ): DadoGrafico[] {
   if (state.modo === 'periodo') return serieMensal(registros, state.periodo)
@@ -486,8 +502,9 @@ export function GraficosTab({ entradas, saidas, topProdutos, topVendidos, loadin
     )
   }
 
-  const dadosEntradas = calcularDados(entradas, stateEntradas)
-  const dadosSaidas = calcularDados(saidas, stateSaidas)
+  // Normaliza para a data da movimentação (entrada = recebimento, saída = saída)
+  const dadosEntradas = calcularDados(entradas.map((e) => ({ data: e.data_recebimento, quantidade: e.quantidade })), stateEntradas)
+  const dadosSaidas = calcularDados(saidas.map((s) => ({ data: s.data_saida, quantidade: s.quantidade })), stateSaidas)
   const barrasEntradas = usarBarrasParaModo(stateEntradas.modo, stateEntradas.inicio, stateEntradas.fim)
   const barrasSaidas = usarBarrasParaModo(stateSaidas.modo, stateSaidas.inicio, stateSaidas.fim)
   const semEntradas = dadosEntradas.every((d) => d.quantidade === 0)
