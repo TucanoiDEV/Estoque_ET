@@ -1,11 +1,12 @@
 import {
   IconLayoutDashboard,
   IconPackage,
+  IconTruck,
   IconSettings,
 } from '@tabler/icons-react'
 import { usePermissions } from '../../hooks/usePermissions'
 
-type Aba = 'dashboard' | 'estoque' | 'configuracoes'
+type Aba = 'dashboard' | 'estoque' | 'fornecedores' | 'configuracoes'
 
 interface Props {
   abaAtiva: Aba
@@ -17,6 +18,7 @@ interface Props {
 const abas: { id: Aba; label: string; icon: React.ReactNode; soAdmin?: boolean }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: <IconLayoutDashboard size={20} /> },
   { id: 'estoque', label: 'Estoque', icon: <IconPackage size={20} /> },
+  { id: 'fornecedores', label: 'Fornecedores', icon: <IconTruck size={20} />, soAdmin: true },
   { id: 'configuracoes', label: 'Configurações', icon: <IconSettings size={20} />, soAdmin: true },
 ]
 

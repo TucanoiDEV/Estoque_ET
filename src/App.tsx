@@ -50,7 +50,6 @@ const subAbasDashboard: { id: SubAbaDashboard; label: string }[] = [
 // ─── Sub-abas de Configurações ────────────────────────────────────────────────
 type SubAbaConfig =
   | 'usuarios'
-  | 'fornecedores'
   | 'estoque'
   | 'notificacoes'
   | 'ia'
@@ -58,7 +57,6 @@ type SubAbaConfig =
 
 const subAbasConfig: { id: SubAbaConfig; label: string }[] = [
   { id: 'usuarios', label: 'Usuários' },
-  { id: 'fornecedores', label: 'Fornecedores' },
   { id: 'estoque', label: 'Estoque' },
   { id: 'notificacoes', label: 'Notificações' },
   { id: 'ia', label: 'Assistente IA' },
@@ -188,6 +186,19 @@ function AppLayout() {
               </div>
             )}
 
+            {/* ── Fornecedores (exclusivo de admin) ── */}
+            {abaAtiva === 'fornecedores' && isAdmin() && (
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-white">Fornecedores</h1>
+                  <p className="text-sm text-gray-500 mt-0.5">Gestão completa dos fornecedores do estoque</p>
+                </div>
+                <div className="bg-dark-card border border-dark-border rounded-xl p-6">
+                  <FornecedoresSection />
+                </div>
+              </div>
+            )}
+
             {/* ── Configurações (exclusivo de admin) ── */}
             {abaAtiva === 'configuracoes' && isAdmin() && (
               <div className="space-y-6">
@@ -217,7 +228,6 @@ function AppLayout() {
                   {/* Painel da seção selecionada */}
                   <div className="flex-1 bg-dark-card border border-dark-border rounded-xl p-6 min-h-96">
                     {subAbaConf === 'usuarios' && <UsuariosSection />}
-                    {subAbaConf === 'fornecedores' && <FornecedoresSection />}
                     {subAbaConf === 'estoque' && <EstoqueSection />}
                     {subAbaConf === 'notificacoes' && <NotificacoesSection />}
                     {subAbaConf === 'ia' && <IASection />}

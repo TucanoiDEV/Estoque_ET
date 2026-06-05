@@ -151,7 +151,9 @@ export function HistoricoTab({ entradas, saidas, produtos, loading }: Props) {
       tipo: 'entrada' as const,
       data: en.data_recebimento.slice(0, 10),
       produto: (en.produto as any)?.nome ?? '—',
-      fornecedor: (en.fornecedor as any)?.nome ?? fornecedorPorProduto.get(en.produto_id) ?? '—',
+      // Só o fornecedor escolhido na própria entrada; sem fallback para o
+      // fornecedor cadastrado no produto (senão aparece um "aleatório").
+      fornecedor: (en.fornecedor as any)?.nome ?? '—',
       motivo: '—',
       quantidade: en.quantidade,
       total: en.total,

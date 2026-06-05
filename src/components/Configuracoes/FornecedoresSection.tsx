@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
-  IconTruck, IconTrash, IconEdit, IconLoader2, IconPlus, IconSearch,
+  IconTrash, IconEdit, IconEye, IconChartLine, IconLoader2, IconPlus, IconSearch,
   IconChevronLeft, IconChevronRight, IconArrowsSort, IconBuildingOff,
 } from '@tabler/icons-react'
 import { db } from '../../services/supabase'
 import { useToast } from '../shared/Toast'
 import { FornecedorDrawer } from './fornecedor/FornecedorDrawer'
+import { FornecedorResumoModal } from './fornecedor/FornecedorResumoModal'
+import { FornecedorHistorico } from './fornecedor/FornecedorHistorico'
 import type { Fornecedor } from '../../types'
 
 type FiltroStatus = 'todos' | 'ativos' | 'inativos'
@@ -16,6 +18,8 @@ export function FornecedoresSection() {
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([])
   const [loading, setLoading] = useState(true)
   const [drawer, setDrawer] = useState<{ aberto: boolean; editando: Fornecedor | null }>({ aberto: false, editando: null })
+  const [resumo, setResumo] = useState<Fornecedor | null>(null)
+  const [historico, setHistorico] = useState<Fornecedor | null>(null)
   const [excluindo, setExcluindo] = useState<string | null>(null)
 
   const [busca, setBusca] = useState('')
@@ -77,25 +81,7 @@ export function FornecedoresSection() {
 
   return (
     <div className="space-y-5">
-      {/* Cabeçalho */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <IconTruck size={20} className="text-brand-blue" />
-          <div>
-            <h3 className="text-base font-semibold text-white">Fornecedores</h3>
-            <p className="text-xs text-gray-500">Gestão completa dos fornecedores do estoque</p>
-          </div>
-        </div>
-        <button
-          onClick={() => setDrawer({ aberto: true, editando: null })}
-          className="flex items-center gap-1.5 bg-brand-blue hover:bg-blue-600 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
-        >
-          <IconPlus size={16} />
-          Novo fornecedor
-        </button>
-      </div>
-
-      {/* Filtros */}
+      {/* Filtros + ação */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <IconSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -123,6 +109,13 @@ export function FornecedoresSection() {
           <IconArrowsSort size={15} />
           Nome {ordemAsc ? 'A→Z' : 'Z→A'}
         </button>
+        <button
+          onClick={() => setDrawer({ aberto: true, editando: null })}
+          className="flex items-center gap-1.5 bg-brand-blue hover:bg-blue-600 text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+        >
+          <IconPlus size={16} />
+          Novo fornecedor
+        </button>
       </div>
 
       {drawer.aberto && (
@@ -131,6 +124,10 @@ export function FornecedoresSection() {
           onFechar={() => setDrawer({ aberto: false, editando: null })}
           onSalvo={carregar}
         />
+      )}
+
+      {resumo && (
+        <FornecedorResumoModal fornecedor={resumo} onFechar={() => setResumo(null)} />
       )}
 
       {/* Tabela */}
@@ -173,6 +170,20 @@ export function FornecedoresSection() {
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setResumo(f)}
+                          title="Ver resumo"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand-green hover:bg-brand-green/10"
+                        >
+                          <IconEye size={15} />
+                        </button>
+                        <button
+                          onClick={() => setHistorico(f)}
+                          title="Histórico de compras"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand-blue hover:bg-brand-blue/10"
+                        >
+                          <IconChartLine size={15} />
+                        </button>
                         <button
                           onClick={() => setDrawer({ aberto: true, editando: f })}
                           title="Editar"
@@ -220,6 +231,15 @@ export function FornecedoresSection() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Histórico de compras do fornecedor selecionado */}
+      {historico && (
+        <FornecedorHistorico
+          key={historico.id}
+          fornecedor={historico}
+          onFechar={() => setHistorico(null)}
+        />
       )}
     </div>
   )

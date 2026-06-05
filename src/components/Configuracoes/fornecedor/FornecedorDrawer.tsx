@@ -232,7 +232,7 @@ export function FornecedorDrawer({ editando, onFechar, onSalvo }: Props) {
 
       <form
         onSubmit={salvar}
-        className="relative w-full max-w-2xl h-full bg-dark-card border-l border-dark-border shadow-2xl flex flex-col"
+        className="relative w-full max-w-4xl h-full bg-dark-card border-l border-dark-border shadow-2xl flex flex-col"
       >
         {/* Cabeçalho */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-dark-border shrink-0">
