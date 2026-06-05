@@ -24,10 +24,12 @@ interface RegistroUnificado {
   id: string
   tipo: TipoRegistro
   data: string
+  criadoEm: string // created_at completo — desempate por hora da ação no mesmo dia
   produto: string
   fornecedor: string
   motivo: string
   quantidade: number | null
+  unidade: string // unidade de medida do produto (UN, KG, L...)
   total: number | null
 }
 
@@ -50,6 +52,11 @@ interface FiltroPopover {
 }
 
 const ITENS_POR_PAGINA = 10
+
+// Marca a entrada gerada pelo estoque inicial do cadastro (ver NovoProdutoModal).
+// No histórico ela não vira uma linha de "Entrada" separada: a quantidade é
+// dobrada na própria linha de "Cadastro" do produto.
+const MARCADOR_ESTOQUE_INICIAL = 'Estoque inicial do cadastro'
 
 const badgeTipo: Record<TipoRegistro, string> = {
   entrada: 'bg-brand-green/15 text-brand-green',
@@ -145,41 +152,64 @@ export function HistoricoTab({ entradas, saidas, produtos, loading }: Props) {
       if (p.fornecedor?.nome) fornecedorPorProduto.set(p.id, p.fornecedor.nome)
     })
 
+    // Entradas de "estoque inicial" (do cadastro): mapeadas por produto para
+    // serem mostradas na linha de Cadastro, e excluídas das linhas de Entrada.
+    const inicialPorProduto = new Map<string, { quantidade: number; total: number | null }>()
+    entradas.forEach((en) => {
+      if (en.observacoes === MARCADOR_ESTOQUE_INICIAL) {
+        inicialPorProduto.set(en.produto_id, { quantidade: en.quantidade, total: en.total })
+      }
+    })
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const e: RegistroUnificado[] = entradas.map((en) => ({
-      id: en.id,
-      tipo: 'entrada' as const,
-      data: en.data_recebimento.slice(0, 10),
-      produto: (en.produto as any)?.nome ?? '—',
-      // Só o fornecedor escolhido na própria entrada; sem fallback para o
-      // fornecedor cadastrado no produto (senão aparece um "aleatório").
-      fornecedor: (en.fornecedor as any)?.nome ?? '—',
-      motivo: '—',
-      quantidade: en.quantidade,
-      total: en.total,
-    }))
+    const e: RegistroUnificado[] = entradas
+      .filter((en) => en.observacoes !== MARCADOR_ESTOQUE_INICIAL)
+      .map((en) => ({
+        id: en.id,
+        tipo: 'entrada' as const,
+        data: en.data_recebimento.slice(0, 10),
+        criadoEm: en.created_at,
+        produto: (en.produto as any)?.nome ?? '—',
+        // Só o fornecedor escolhido na própria entrada; sem fallback para o
+        // fornecedor cadastrado no produto (senão aparece um "aleatório").
+        fornecedor: (en.fornecedor as any)?.nome ?? '—',
+        motivo: '—',
+        quantidade: en.quantidade,
+        unidade: (en.produto as any)?.unidade ?? '',
+        total: en.total,
+      }))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const s: RegistroUnificado[] = saidas.map((sa) => ({
       id: sa.id,
       tipo: 'saida' as const,
       data: sa.data_saida.slice(0, 10),
+      criadoEm: sa.created_at,
       produto: (sa.produto as any)?.nome ?? '—',
       fornecedor: fornecedorPorProduto.get(sa.produto_id) ?? '—',
       motivo: sa.motivo ?? '—',
       quantidade: sa.quantidade,
+      unidade: (sa.produto as any)?.unidade ?? '',
       total: sa.total ?? null,
     }))
-    const c: RegistroUnificado[] = produtos.map((p) => ({
-      id: p.id,
-      tipo: 'cadastro' as const,
-      data: p.created_at.slice(0, 10),
-      produto: p.nome,
-      fornecedor: p.fornecedor?.nome ?? '—',
-      motivo: '—',
-      quantidade: null,
-      total: null,
-    }))
-    return [...e, ...s, ...c].sort((a, b) => b.data.localeCompare(a.data))
+    const c: RegistroUnificado[] = produtos.map((p) => {
+      const inicial = inicialPorProduto.get(p.id)
+      return {
+        id: p.id,
+        tipo: 'cadastro' as const,
+        data: p.created_at.slice(0, 10),
+        criadoEm: p.created_at,
+        produto: p.nome,
+        fornecedor: p.fornecedor?.nome ?? '—',
+        motivo: '—',
+        quantidade: inicial?.quantidade ?? null,
+        unidade: p.unidade ?? '',
+        total: inicial?.total ?? null,
+      }
+    })
+    // Mais recente primeiro: por data e, no mesmo dia, pela hora da ação (created_at)
+    return [...e, ...s, ...c].sort(
+      (a, b) => b.data.localeCompare(a.data) || b.criadoEm.localeCompare(a.criadoEm),
+    )
   }, [entradas, saidas, produtos])
 
   // Opções distintas para os filtros suspensos (ignora o placeholder "—")
@@ -207,7 +237,7 @@ export function HistoricoTab({ entradas, saidas, produtos, loading }: Props) {
     lista.sort((a, b) => {
       switch (ordemCol) {
         case 'tipo': return mult * a.tipo.localeCompare(b.tipo)
-        case 'data': return mult * a.data.localeCompare(b.data)
+        case 'data': return mult * (a.data.localeCompare(b.data) || a.criadoEm.localeCompare(b.criadoEm))
         case 'produto': return mult * a.produto.localeCompare(b.produto)
         case 'fornecedor': return mult * a.fornecedor.localeCompare(b.fornecedor)
         case 'motivo': return mult * a.motivo.localeCompare(b.motivo)
@@ -364,8 +394,13 @@ export function HistoricoTab({ entradas, saidas, produtos, loading }: Props) {
                     <td className="px-5 py-3.5 text-white font-medium whitespace-nowrap">{r.produto}</td>
                     <td className="px-5 py-3.5 text-gray-400 whitespace-nowrap">{r.fornecedor}</td>
                     <td className="px-5 py-3.5 text-gray-400 whitespace-nowrap">{r.motivo}</td>
-                    <td className="px-5 py-3.5 text-gray-300">
-                      {r.quantidade != null ? r.quantidade.toLocaleString('pt-BR') : '—'}
+                    <td className="px-5 py-3.5 text-gray-300 whitespace-nowrap">
+                      {r.quantidade != null ? (
+                        <>
+                          {r.quantidade.toLocaleString('pt-BR')}
+                          {r.unidade && <span className="text-gray-500 text-xs ml-1">{r.unidade}</span>}
+                        </>
+                      ) : '—'}
                     </td>
                     <td className="px-5 py-3.5 text-white font-semibold">
                       {r.total

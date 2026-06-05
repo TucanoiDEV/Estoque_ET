@@ -113,7 +113,7 @@ export function useEstoque() {
       .saidas()
       .select(`
         *,
-        produto:produto_id (id, codigo, nome)
+        produto:produto_id (id, codigo, nome, unidade)
       `)
       .order('created_at', { ascending: false })
 

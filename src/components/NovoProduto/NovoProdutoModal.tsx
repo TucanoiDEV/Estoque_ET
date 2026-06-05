@@ -1,7 +1,9 @@
 import { useState, useEffect, FormEvent } from 'react'
+import { format } from 'date-fns'
 import { IconX, IconLoader2, IconPackages } from '@tabler/icons-react'
 import { db } from '../../services/supabase'
 import { useToast } from '../shared/Toast'
+import { useAuth } from '../../hooks/useAuth'
 import { sanitizarNumero, paraNumero } from '../../utils/numero'
 import { useLista } from '../../hooks/useLista'
 import { useCategorias } from '../../hooks/useCategorias'
@@ -55,6 +57,7 @@ const FORM_INICIAL: FormProduto = {
 
 export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
   const { mostrarToast } = useToast()
+  const { usuario } = useAuth()
   const [form, setForm] = useState<FormProduto>(FORM_INICIAL)
   const [salvando, setSalvando] = useState(false)
   const [erros, setErros] = useState<Partial<Record<keyof FormProduto, string>>>({})
@@ -141,12 +144,33 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
 
       if (erroProduto) throw new Error(erroProduto.message)
 
+      const quantidadeInicial = paraNumero(form.quantidade_inicial)
+
       const { error: erroEstoque } = await db.estoque().insert({
         produto_id: produto.id,
-        quantidade: paraNumero(form.quantidade_inicial),
+        quantidade: quantidadeInicial,
       })
 
       if (erroEstoque) throw new Error(erroEstoque.message)
+
+      // Registra o estoque inicial como uma entrada, para aparecer no histórico
+      // de movimentações (o registro de estoque sozinho não vira entrada).
+      if (quantidadeInicial > 0 && usuario) {
+        const custo = paraNumero(form.custo_unitario)
+        const { error: erroEntrada } = await db.entradas().insert({
+          produto_id: produto.id,
+          fornecedor_id: form.fornecedor_id || null,
+          usuario_id: usuario.id,
+          quantidade: quantidadeInicial,
+          custo_unitario: custo || null,
+          total: custo ? custo * quantidadeInicial : null,
+          data_recebimento: format(new Date(), 'yyyy-MM-dd'),
+          local_armazenamento: form.local_armazenamento || null,
+          observacoes: 'Estoque inicial do cadastro',
+          status: 'recebido',
+        })
+        if (erroEntrada) throw new Error(erroEntrada.message)
+      }
 
       mostrarToast(`Produto "${form.nome.trim()}" cadastrado com sucesso!`, 'sucesso')
       onSalvo()
