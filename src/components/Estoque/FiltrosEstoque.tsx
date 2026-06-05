@@ -1,4 +1,4 @@
-import { IconSearch, IconX, IconTag } from '@tabler/icons-react'
+import { IconSearch, IconX, IconTag, IconDiscount2 } from '@tabler/icons-react'
 import type { FiltrosEstoque, StatusEstoque } from '../../types'
 
 interface Props {
@@ -141,6 +141,20 @@ export function FiltrosEstoque({ filtros, categorias, coresDisponiveis, forneced
           </option>
         ))}
       </select>
+
+      {/* Filtro: somente produtos com desconto */}
+      <button
+        onClick={() => set({ comDesconto: !filtros.comDesconto })}
+        title="Mostrar apenas produtos com desconto"
+        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold border transition-colors ${
+          filtros.comDesconto
+            ? 'bg-brand-purple text-white border-brand-purple'
+            : 'bg-dark-card text-gray-400 border-dark-border hover:text-white'
+        }`}
+      >
+        <IconDiscount2 size={15} />
+        Com desconto
+      </button>
     </div>
   )
 }

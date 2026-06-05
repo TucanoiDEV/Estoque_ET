@@ -49,28 +49,37 @@ export function useEstoque() {
     setLoading(true)
     setErro(null)
 
-    const { data, error } = await db
-      .estoque()
-      .select(`
+    const campos = (nivel: 'completo' | 'desconto' | 'nenhum') => {
+      const extra = nivel === 'completo' ? ' desconto, desconto_inicio, desconto_fim,' : nivel === 'desconto' ? ' desconto,' : ''
+      return `
         quantidade,
         updated_at,
         produto:produto_id (
           id, codigo, nome, categoria, unidade, cor,
-          custo_unitario, estoque_minimo, local_armazenamento, created_at,
+          custo_unitario,${extra} estoque_minimo, local_armazenamento, created_at,
           fornecedor_id,
           fornecedor:fornecedor_id (id, nome)
         )
-      `)
+      `
+    }
 
-    if (error) {
+    // Fallback em níveis: com datas → só desconto → nenhum (conforme as colunas já criadas)
+    let resposta = await db.estoque().select(campos('completo'))
+    if (resposta.error) resposta = await db.estoque().select(campos('desconto'))
+    if (resposta.error) resposta = await db.estoque().select(campos('nenhum'))
+
+    if (resposta.error) {
       setErro('Falha ao carregar o estoque. Verifique sua conexão.')
       setLoading(false)
       return
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const itens: ProdutoComEstoque[] = (data ?? []).map((item: any) => ({
+    const itens: ProdutoComEstoque[] = (resposta.data ?? []).map((item: any) => ({
       ...item.produto,
+      desconto: item.produto?.desconto ?? 0,
+      desconto_inicio: item.produto?.desconto_inicio ?? null,
+      desconto_fim: item.produto?.desconto_fim ?? null,
       quantidade: item.quantidade,
       status: calcularStatus(item.quantidade, item.produto?.estoque_minimo ?? 10),
     }))

@@ -4,6 +4,8 @@ import { db } from '../../services/supabase'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useToast } from '../shared/Toast'
 import { sanitizarNumero, paraNumero } from '../../utils/numero'
+import { normalizarBusca } from '../../utils/texto'
+import { descontoVigente, precoComDesconto } from '../../utils/desconto'
 import { FiltrosEstoque } from './FiltrosEstoque'
 import { ProdutoDetalheModal } from './ProdutoDetalheModal'
 import type { ProdutoComEstoque, StatusEstoque, Fornecedor, FiltrosEstoque as FiltrosType } from '../../types'
@@ -165,7 +167,7 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
   const [produtoEditando, setProdutoEditando] = useState<ProdutoComEstoque | null>(null)
   const [produtoDetalhe, setProdutoDetalhe] = useState<ProdutoComEstoque | null>(null)
   const [excluindo, setExcluindo] = useState<string | null>(null)
-  const [filtros, setFiltros] = useState<FiltrosType>({ busca: '', categoria: '', status: 'todos', medida: '', cor: '', fornecedor: '' })
+  const [filtros, setFiltros] = useState<FiltrosType>({ busca: '', categoria: '', status: 'todos', medida: '', cor: '', fornecedor: '', comDesconto: false })
 
   // Extrai categorias únicas
   const categorias = useMemo(
@@ -187,17 +189,17 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
 
   // Aplica filtros
   const produtosFiltrados = useMemo(() => {
+    const q = normalizarBusca(filtros.busca.trim())
     return produtos.filter((p) => {
-      const buscaOk =
-        !filtros.busca ||
-        p.nome.toLowerCase().includes(filtros.busca.toLowerCase()) ||
-        p.codigo.toLowerCase().includes(filtros.busca.toLowerCase())
+      // Busca insensível a acento/maiúscula, por nome ou código
+      const buscaOk = !q || normalizarBusca(`${p.nome} ${p.codigo}`).includes(q)
       const categoriaOk = !filtros.categoria || p.categoria === filtros.categoria
       const statusOk = filtros.status === 'todos' || p.status === filtros.status
       const medidaOk = !filtros.medida || (p.unidade ?? '').toUpperCase() === filtros.medida.toUpperCase()
       const corOk = !filtros.cor || (p.cor ?? '').toLowerCase() === filtros.cor.toLowerCase()
       const fornecedorOk = !filtros.fornecedor || p.fornecedor?.nome === filtros.fornecedor
-      return buscaOk && categoriaOk && statusOk && medidaOk && corOk && fornecedorOk
+      const descontoOk = !filtros.comDesconto || descontoVigente(p) > 0
+      return buscaOk && categoriaOk && statusOk && medidaOk && corOk && fornecedorOk && descontoOk
     })
   }, [produtos, filtros])
 
@@ -264,7 +266,7 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
                     {['Código', 'Produto', 'Categoria', 'Fornecedor', 'Medida', 'Cor', 'Qtd.', 'Mínimo', 'Custo', 'Status', ''].map((col) => (
                       <th
                         key={col}
-                        className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap"
                       >
                         {col}
                       </th>
@@ -279,16 +281,16 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
                         key={produto.id}
                         className="border-b border-dark-border/50 hover:bg-dark-hover/40 transition-colors"
                       >
-                        <td className="px-5 py-3.5 font-mono text-xs text-gray-400">{produto.codigo}</td>
-                        <td className="px-5 py-3.5 font-medium text-white">{produto.nome}</td>
-                        <td className="px-5 py-3.5 text-gray-400">{produto.categoria ?? '—'}</td>
-                        <td className="px-5 py-3.5 text-gray-400 whitespace-nowrap">{produto.fornecedor?.nome ?? '—'}</td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-3 py-3.5 font-mono text-xs text-gray-400">{produto.codigo}</td>
+                        <td className="px-3 py-3.5 font-medium text-white">{produto.nome}</td>
+                        <td className="px-3 py-3.5 text-gray-400">{produto.categoria ?? '—'}</td>
+                        <td className="px-3 py-3.5 text-gray-400 whitespace-nowrap">{produto.fornecedor?.nome ?? '—'}</td>
+                        <td className="px-3 py-3.5">
                           <span className="inline-block px-2 py-0.5 rounded-md text-xs font-semibold bg-dark-hover text-gray-300 uppercase">
                             {produto.unidade || '—'}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-3 py-3.5">
                           {produto.cor ? (
                             <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-semibold ${corBadgeClass(produto.cor)}`}>
                               {produto.cor}
@@ -297,29 +299,45 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
                             <span className="text-gray-700">—</span>
                           )}
                         </td>
-                        <td className="px-5 py-3.5 text-white font-semibold">
+                        <td className="px-3 py-3.5 text-white font-semibold">
                           {produto.quantidade.toLocaleString('pt-BR')}
                         </td>
-                        <td className="px-5 py-3.5 text-gray-400">{produto.estoque_minimo}</td>
-                        <td className="px-5 py-3.5 text-gray-300">
+                        <td className="px-3 py-3.5 text-gray-400">{produto.estoque_minimo}</td>
+                        <td className="px-3 py-3.5 text-gray-300 whitespace-nowrap">
                           {produto.custo_unitario ? (
-                            <>
-                              {produto.custo_unitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                              <span className="text-gray-500">/{produto.unidade.toLowerCase()}</span>
-                            </>
+                            descontoVigente(produto) > 0 ? (
+                              <div className="flex flex-col leading-tight">
+                                <span className="text-gray-500 line-through text-[11px]">
+                                  {produto.custo_unitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                  <span className="text-brand-green font-semibold">
+                                    {precoComDesconto(produto.custo_unitario, produto).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                  </span>
+                                  <span className="text-[10px] font-semibold text-brand-purple bg-brand-purple/15 px-1.5 py-0.5 rounded-full">
+                                    −{descontoVigente(produto)}%
+                                  </span>
+                                </span>
+                              </div>
+                            ) : (
+                              <>
+                                {produto.custo_unitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                <span className="text-gray-500">/{produto.unidade.toLowerCase()}</span>
+                              </>
+                            )
                           ) : '—'}
                         </td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-3 py-3.5">
                           <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${badge.classes}`}>
                             {badge.label}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-1">
+                        <td className="px-3 py-3.5">
+                          <div className="flex items-center gap-0.5">
                             <button
                               onClick={() => setProdutoDetalhe(produto)}
                               title="Ver fornecedores e reposição"
-                              className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand-purple hover:bg-brand-purple/10 transition-colors"
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand-purple hover:bg-brand-purple/10 transition-colors"
                             >
                               <IconEye size={15} />
                             </button>
@@ -327,7 +345,7 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
                               <button
                                 onClick={() => setProdutoEditando(produto)}
                                 title="Editar"
-                                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand-blue hover:bg-brand-blue/10 transition-colors"
+                                className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand-blue hover:bg-brand-blue/10 transition-colors"
                               >
                                 <IconEdit size={15} />
                               </button>
@@ -337,7 +355,7 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
                                 onClick={() => excluirProduto(produto)}
                                 disabled={excluindo === produto.id}
                                 title="Excluir"
-                                className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand-red hover:bg-brand-red/10 transition-colors disabled:opacity-40"
+                                className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand-red hover:bg-brand-red/10 transition-colors disabled:opacity-40"
                               >
                                 {excluindo === produto.id ? (
                                   <IconLoader2 size={15} className="animate-spin" />
@@ -357,7 +375,7 @@ export function TabelaEstoque({ produtos, fornecedores, loading, onRecarregar }:
           )}
 
           {/* Rodapé com total */}
-          <div className="px-5 py-3 border-t border-dark-border flex items-center justify-between text-xs text-gray-500">
+          <div className="px-3 py-3 border-t border-dark-border flex items-center justify-between text-xs text-gray-500">
             <span>{produtosFiltrados.length} produto(s) exibido(s)</span>
             <span>
               Total filtrado:{' '}

@@ -13,8 +13,8 @@ import {
 import type { DadoGrafico, DadoProdutoMovimentado } from '../../types'
 
 interface Props {
-  entradas: { data_recebimento: string; quantidade: number }[]
-  saidas: { data_saida: string; quantidade: number }[]
+  entradas: { data_recebimento: string; quantidade: number; produto?: { nome: string } | null }[]
+  saidas: { data_saida: string; quantidade: number; produto?: { nome: string } | null }[]
   topProdutos: DadoProdutoMovimentado[]
   topVendidos: DadoProdutoMovimentado[]
   loading: boolean
@@ -26,6 +26,22 @@ interface Props {
 interface RegistroData {
   data: string // 'YYYY-MM-DD'
   quantidade: number
+  produto: string
+}
+
+export interface TopProduto {
+  nome: string
+  quantidade: number
+}
+
+// Top N produtos (por quantidade) de um conjunto de registros do mesmo período.
+function topProdutosDe(registros: RegistroData[], n = 5): TopProduto[] {
+  const mapa = new Map<string, number>()
+  registros.forEach((r) => mapa.set(r.produto, (mapa.get(r.produto) ?? 0) + r.quantidade))
+  return [...mapa.entries()]
+    .map(([nome, quantidade]) => ({ nome, quantidade }))
+    .sort((a, b) => b.quantidade - a.quantidade)
+    .slice(0, n)
 }
 
 // Chaves de agrupamento sempre no fuso LOCAL (evita o off-by-one do toISOString).
@@ -55,7 +71,7 @@ function serieMensal(registros: RegistroData[], meses: number): DadoGrafico[] {
     const chave = chaveMes(d)
     const nomeMes = d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
     const doMes = registros.filter((r) => r.data?.startsWith(chave))
-    resultado.push({ mes: nomeMes, quantidade: doMes.reduce((acc, r) => acc + r.quantidade, 0), total: 0 })
+    resultado.push({ mes: nomeMes, quantidade: doMes.reduce((acc, r) => acc + r.quantidade, 0), total: 0, top: topProdutosDe(doMes) })
   }
   return resultado
 }
@@ -67,7 +83,7 @@ function serieDiaria(registros: RegistroData[], anoMes: string): DadoGrafico[] {
   for (let dia = 1; dia <= diasNoMes; dia++) {
     const chave = `${anoMes}-${String(dia).padStart(2, '0')}`
     const doDia = registros.filter((r) => r.data?.startsWith(chave))
-    resultado.push({ mes: String(dia).padStart(2, '0'), quantidade: doDia.reduce((acc, r) => acc + r.quantidade, 0), total: 0 })
+    resultado.push({ mes: String(dia).padStart(2, '0'), quantidade: doDia.reduce((acc, r) => acc + r.quantidade, 0), total: 0, top: topProdutosDe(doDia) })
   }
   return resultado
 }
@@ -89,7 +105,7 @@ function serieIntervalo(
       const chave = chaveDia(d)
       const label = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
       const doDia = registros.filter((r) => r.data?.startsWith(chave))
-      resultado.push({ mes: label, quantidade: doDia.reduce((acc, r) => acc + r.quantidade, 0), total: 0 })
+      resultado.push({ mes: label, quantidade: doDia.reduce((acc, r) => acc + r.quantidade, 0), total: 0, top: topProdutosDe(doDia) })
     }
   } else {
     const cur = new Date(start.getFullYear(), start.getMonth(), 1)
@@ -97,8 +113,8 @@ function serieIntervalo(
     while (cur <= endMes) {
       const chave = chaveMes(cur)
       const label = cur.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
-      const qty = registros.filter((r) => r.data?.startsWith(chave)).reduce((acc, r) => acc + r.quantidade, 0)
-      resultado.push({ mes: label, quantidade: qty, total: 0 })
+      const doMes = registros.filter((r) => r.data?.startsWith(chave))
+      resultado.push({ mes: label, quantidade: doMes.reduce((acc, r) => acc + r.quantidade, 0), total: 0, top: topProdutosDe(doMes) })
       cur.setMonth(cur.getMonth() + 1)
     }
   }
@@ -274,12 +290,27 @@ function SeletorMes({
   )
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function TooltipPersonalizado({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
+  const top: TopProduto[] = payload[0]?.payload?.top ?? []
   return (
-    <div className="bg-dark-card border border-dark-border rounded-lg px-3 py-2 shadow-xl text-sm">
+    <div className="bg-dark-card border border-dark-border rounded-lg px-3 py-2 shadow-xl text-sm max-w-[240px]">
       <p className="text-gray-400 mb-1">{label}</p>
       <p className="text-white font-semibold">{payload[0]?.value?.toLocaleString('pt-BR')} unidades</p>
+      {top.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-dark-border">
+          <p className="text-[11px] text-gray-500 mb-1">Top 5 produtos do período</p>
+          <ul className="space-y-0.5">
+            {top.map((p, i) => (
+              <li key={p.nome} className="flex items-center justify-between gap-3 text-xs">
+                <span className="text-gray-300 truncate">{i + 1}. {p.nome}</span>
+                <span className="text-white font-semibold shrink-0">{p.quantidade.toLocaleString('pt-BR')}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
@@ -503,8 +534,8 @@ export function GraficosTab({ entradas, saidas, topProdutos, topVendidos, loadin
   }
 
   // Normaliza para a data da movimentação (entrada = recebimento, saída = saída)
-  const dadosEntradas = calcularDados(entradas.map((e) => ({ data: e.data_recebimento, quantidade: e.quantidade })), stateEntradas)
-  const dadosSaidas = calcularDados(saidas.map((s) => ({ data: s.data_saida, quantidade: s.quantidade })), stateSaidas)
+  const dadosEntradas = calcularDados(entradas.map((e) => ({ data: e.data_recebimento, quantidade: e.quantidade, produto: e.produto?.nome ?? 'Desconhecido' })), stateEntradas)
+  const dadosSaidas = calcularDados(saidas.map((s) => ({ data: s.data_saida, quantidade: s.quantidade, produto: s.produto?.nome ?? 'Desconhecido' })), stateSaidas)
   const barrasEntradas = usarBarrasParaModo(stateEntradas.modo, stateEntradas.inicio, stateEntradas.fim)
   const barrasSaidas = usarBarrasParaModo(stateSaidas.modo, stateSaidas.inicio, stateSaidas.fim)
   const semEntradas = dadosEntradas.every((d) => d.quantidade === 0)

@@ -8,8 +8,8 @@ async function abrirFornecedores(page: Page) {
   await page.fill('#senha', ADMIN.senha)
   await page.click('button[type=submit]')
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15_000 })
-  await page.getByRole('button', { name: 'Configurações' }).click()
-  await page.getByRole('main').getByRole('button', { name: 'Fornecedores', exact: true }).click()
+  // Fornecedores agora é uma aba da barra lateral (não mais submenu de Configurações)
+  await page.getByRole('complementary').getByRole('button', { name: 'Fornecedores' }).click()
   await expect(page.getByRole('heading', { name: 'Fornecedores' })).toBeVisible()
 }
 

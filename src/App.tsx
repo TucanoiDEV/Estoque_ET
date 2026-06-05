@@ -29,6 +29,7 @@ import { TabelaEstoque } from './components/Estoque/TabelaEstoque'
 import { UsuariosSection } from './components/Configuracoes/UsuariosSection'
 import { FornecedoresSection } from './components/Configuracoes/FornecedoresSection'
 import { EstoqueSection } from './components/Configuracoes/EstoqueSection'
+import { DescontosSection } from './components/Configuracoes/DescontosSection'
 import { NotificacoesSection } from './components/Configuracoes/NotificacoesSection'
 import { IASection } from './components/Configuracoes/IASection'
 import { BackupSection } from './components/Configuracoes/BackupSection'
@@ -51,6 +52,7 @@ const subAbasDashboard: { id: SubAbaDashboard; label: string }[] = [
 type SubAbaConfig =
   | 'usuarios'
   | 'estoque'
+  | 'descontos'
   | 'notificacoes'
   | 'ia'
   | 'backup'
@@ -58,6 +60,7 @@ type SubAbaConfig =
 const subAbasConfig: { id: SubAbaConfig; label: string }[] = [
   { id: 'usuarios', label: 'Usuários' },
   { id: 'estoque', label: 'Estoque' },
+  { id: 'descontos', label: 'Descontos' },
   { id: 'notificacoes', label: 'Notificações' },
   { id: 'ia', label: 'Assistente IA' },
   { id: 'backup', label: 'Backup' },
@@ -229,6 +232,7 @@ function AppLayout() {
                   <div className="flex-1 bg-dark-card border border-dark-border rounded-xl p-6 min-h-96">
                     {subAbaConf === 'usuarios' && <UsuariosSection />}
                     {subAbaConf === 'estoque' && <EstoqueSection />}
+                    {subAbaConf === 'descontos' && <DescontosSection onAplicado={recarregar} />}
                     {subAbaConf === 'notificacoes' && <NotificacoesSection />}
                     {subAbaConf === 'ia' && <IASection />}
                     {subAbaConf === 'backup' && <BackupSection />}

@@ -23,6 +23,9 @@ export interface Produto {
   unidade: string
   cor: string | null
   custo_unitario: number | null
+  desconto: number | null // percentual de desconto (0–100)
+  desconto_inicio: string | null // data de início da vigência (opcional)
+  desconto_fim: string | null // data de fim da vigência (opcional)
   estoque_minimo: number
   local_armazenamento: string | null
   fornecedor_id: string | null
@@ -173,6 +176,7 @@ export interface DadoGrafico {
   mes: string
   quantidade: number
   total: number
+  top?: { nome: string; quantidade: number }[] // top produtos do período (para o tooltip)
 }
 
 export interface DadoProdutoMovimentado {
@@ -209,4 +213,5 @@ export interface FiltrosEstoque {
   medida: string
   cor: string
   fornecedor: string
+  comDesconto: boolean
 }

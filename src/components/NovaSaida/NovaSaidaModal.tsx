@@ -6,6 +6,7 @@ import { useToast } from '../shared/Toast'
 import { useAuth } from '../../hooks/useAuth'
 import { sanitizarNumero, paraNumero } from '../../utils/numero'
 import { infoUnidade } from '../../utils/unidade'
+import { descontoVigente, precoComDesconto } from '../../utils/desconto'
 import { ComboBox } from '../shared/ComboBox'
 import type { Produto } from '../../types'
 
@@ -58,10 +59,14 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
 
   useEffect(() => {
     async function carregar() {
-      const [{ data: prods }, { data: estoques }] = await Promise.all([
-        db.produtos().select('id, codigo, nome, unidade, categoria, cor, custo_unitario, estoque_minimo, local_armazenamento, created_at').order('nome'),
-        db.estoque().select('id, produto_id, quantidade').gt('quantidade', 0),
-      ])
+      const camposBase = 'id, codigo, nome, unidade, categoria, cor, custo_unitario, estoque_minimo, local_armazenamento, created_at'
+      // Tenta com os campos de desconto; se ainda não existirem, carrega sem
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let prodsResp: { data: any[] | null; error: any } = await db.produtos().select(`${camposBase}, desconto, desconto_inicio, desconto_fim`).order('nome')
+      if (prodsResp.error) prodsResp = await db.produtos().select(`${camposBase}, desconto`).order('nome')
+      if (prodsResp.error) prodsResp = await db.produtos().select(camposBase).order('nome')
+      const { data: estoques } = await db.estoque().select('id, produto_id, quantidade').gt('quantidade', 0)
+      const prods = prodsResp.data
       if (!prods || !estoques) return
       const merged: ProdutoComEstoque[] = prods
         .filter((p) => estoques.some((e) => e.produto_id === p.id))
@@ -79,13 +84,13 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
     if (erros[campo]) setErros((prev) => ({ ...prev, [campo]: undefined }))
   }
 
-  // Preenche o custo ao selecionar o produto (usa o custo cadastrado, mas permanece editável)
+  // Preenche o custo ao selecionar o produto, já com o desconto vigente aplicado (editável)
   function selecionarProduto(produtoId: string) {
     const produto = produtos.find((p) => p.id === produtoId)
     setForm((prev) => ({
       ...prev,
       produto_id: produtoId,
-      custo_unitario: produto?.custo_unitario != null ? String(produto.custo_unitario) : prev.custo_unitario,
+      custo_unitario: produto?.custo_unitario != null ? String(precoComDesconto(produto.custo_unitario, produto)) : prev.custo_unitario,
     }))
     if (erros.produto_id) setErros((prev) => ({ ...prev, produto_id: undefined }))
   }
@@ -97,6 +102,8 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
 
   // Unidade do produto selecionado — rotula o custo (ex.: "Custo por metro" / R$/m)
   const custoInfo = infoUnidade(produtoSelecionado?.unidade)
+  // Desconto vigente do produto selecionado (já refletido no custo pré-preenchido)
+  const descontoAplicado = produtoSelecionado ? descontoVigente(produtoSelecionado) : 0
 
   function validar(): boolean {
     const novosErros: typeof erros = {}
@@ -231,6 +238,12 @@ export function NovaSaidaModal({ onFechar, onSalvo }: Props) {
                   R$/{custoInfo.abrev}
                 </span>
               </div>
+              {descontoAplicado > 0 && produtoSelecionado?.custo_unitario != null && (
+                <p className="text-[11px] text-brand-purple mt-1">
+                  −{descontoAplicado}% aplicado · original{' '}
+                  {produtoSelecionado.custo_unitario.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </p>
+              )}
               {erros.custo_unitario && <p className="text-xs text-brand-red mt-1">{erros.custo_unitario}</p>}
             </div>
           </div>
