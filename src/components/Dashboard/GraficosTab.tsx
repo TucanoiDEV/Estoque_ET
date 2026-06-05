@@ -52,7 +52,7 @@ function chaveMes(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-type ModoGrafico = 'periodo' | 'mes' | 'intervalo'
+export type ModoGrafico = 'periodo' | 'mes' | 'intervalo'
 
 const OPCOES_PERIODO = [
   { label: '3M', meses: 3, descricao: 'Exibe os últimos 3 meses' },
@@ -121,9 +121,9 @@ function serieIntervalo(
   return resultado
 }
 
-function hojeStr() { return chaveDia(new Date()) }
-function mesAtualStr() { return chaveMes(new Date()) }
-function trintaDiasAtras() {
+export function hojeStr() { return chaveDia(new Date()) }
+export function mesAtualStr() { return chaveMes(new Date()) }
+export function trintaDiasAtras() {
   const d = new Date(); d.setDate(d.getDate() - 29); return chaveDia(d)
 }
 
@@ -345,7 +345,7 @@ function Ranking({ itens, cores, vazio }: { itens: DadoProdutoMovimentado[]; cor
 const eixoX = { dataKey: 'mes', tick: { fill: '#6b7280', fontSize: 12 }, axisLine: false, tickLine: false }
 const eixoY = { tick: { fill: '#6b7280', fontSize: 11 }, axisLine: false, tickLine: false, width: 40 }
 
-interface GraficoState {
+export interface GraficoState {
   modo: ModoGrafico
   periodo: number
   mes: string
@@ -384,7 +384,7 @@ function subtitulo(state: GraficoState, tipo: 'entradas' | 'saidas'): string {
   return `De ${ini} até ${fim}`
 }
 
-function BotoesModo({
+export function BotoesModo({
   state,
   cor,
   onChange,
@@ -409,7 +409,7 @@ function BotoesModo({
   )
 }
 
-function ControleSecundario({
+export function ControleSecundario({
   state,
   cor,
   onChange,

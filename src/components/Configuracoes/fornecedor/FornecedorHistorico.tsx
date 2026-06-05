@@ -7,10 +7,33 @@ import {
 } from 'recharts'
 import { formatarMoeda } from '../../../utils/numero'
 import { formatarData } from '../../../utils/data'
+import {
+  BotoesModo, ControleSecundario, hojeStr, mesAtualStr, trintaDiasAtras, type GraficoState,
+} from '../../Dashboard/GraficosTab'
 import type { Entrada, Fornecedor } from '../../../types'
+
+// Filtra as compras pela janela de tempo escolhida (mesmos modos do gráfico de
+// Entradas por Período: Período = últimos N meses, Mês = mês específico,
+// Intervalo = faixa de datas). c.data é 'YYYY-MM-DD'.
+function filtrarPorTempo(compras: Compra[], state: GraficoState): Compra[] {
+  if (state.modo === 'mes') {
+    return compras.filter((c) => c.data.startsWith(state.mes))
+  }
+  if (state.modo === 'intervalo') {
+    if (!state.inicio || !state.fim) return compras
+    return compras.filter((c) => c.data >= state.inicio && c.data <= state.fim)
+  }
+  // periodo: últimos N meses, incluindo o atual
+  const limite = new Date()
+  limite.setDate(1)
+  limite.setMonth(limite.getMonth() - (state.periodo - 1))
+  const chaveLimite = `${limite.getFullYear()}-${String(limite.getMonth() + 1).padStart(2, '0')}`
+  return compras.filter((c) => c.data.slice(0, 7) >= chaveLimite)
+}
 
 interface Compra {
   data: string
+  criadoEm: string // created_at — desempata a ordem de compras no mesmo dia
   preco: number
   quantidade: number
   unidade: string
@@ -52,6 +75,10 @@ interface Props {
 export function FornecedorHistorico({ fornecedor, entradas, loading, onFechar }: Props) {
   const [modo, setModo] = useState<Modo>('lista')
   const [produtoFiltro, setProdutoFiltro] = useState<string>('') // '' = todos
+  // Filtro de tempo do gráfico (mesmos modos do "Entradas por Período")
+  const [estadoGrafico, setEstadoGrafico] = useState<GraficoState>({
+    modo: 'periodo', periodo: 12, mes: mesAtualStr(), inicio: trintaDiasAtras(), fim: hojeStr(),
+  })
 
   // Histórico derivado do estado central (useEstoque): filtra as entradas deste
   // fornecedor. Fonte única de verdade — acompanha o realtime e o histórico geral.
@@ -61,6 +88,7 @@ export function FornecedorHistorico({ fornecedor, entradas, loading, onFechar }:
       .filter((e) => (e.fornecedor as any)?.id === fornecedor.id || e.fornecedor_id === fornecedor.id)
       .map((e) => ({
         data: e.data_recebimento,
+        criadoEm: e.created_at,
         preco: e.custo_unitario ?? (e.quantidade ? (e.total ?? 0) / e.quantidade : 0),
         quantidade: e.quantidade,
         unidade: e.produto?.unidade ?? 'un',
@@ -89,12 +117,17 @@ export function FornecedorHistorico({ fornecedor, entradas, loading, onFechar }:
     [compras, produtoFiltro],
   )
 
-  // Série para o gráfico: ordem cronológica (mais antiga → mais recente)
+  // Série para o gráfico: ordem cronológica (mais antiga → mais recente). No mesmo
+  // dia, desempata pela hora da compra (created_at) — senão a sequência fica
+  // invertida e o preço parece subir/descer ao contrário.
   const serie = useMemo(
-    () => [...comprasFiltradas]
-      .sort((a, b) => a.data.localeCompare(b.data))
-      .map((c) => ({ data: formatarData(c.data, 'dd/MM'), preco: c.preco, quantidade: c.quantidade, unidade: c.unidade })),
-    [comprasFiltradas],
+    () => filtrarPorTempo(comprasFiltradas, estadoGrafico)
+      .sort((a, b) => a.data.localeCompare(b.data) || a.criadoEm.localeCompare(b.criadoEm))
+      // idx = posição única no eixo X. Sem isso, várias compras no mesmo dia
+      // compartilham o rótulo "dd/MM", o Recharts funde as categorias e o tooltip
+      // passa a apontar todas para o mesmo ponto.
+      .map((c, idx) => ({ idx, data: formatarData(c.data, 'dd/MM'), preco: c.preco, quantidade: c.quantidade, unidade: c.unidade })),
+    [comprasFiltradas, estadoGrafico],
   )
 
   return (
@@ -159,6 +192,14 @@ export function FornecedorHistorico({ fornecedor, entradas, loading, onFechar }:
         </div>
       </div>
 
+      {/* Filtros de tempo do gráfico — mesmos modos do "Entradas por Período" */}
+      {modo === 'grafico' && !loading && compras.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <BotoesModo state={estadoGrafico} cor="blue" onChange={(p) => setEstadoGrafico((s) => ({ ...s, ...p }))} />
+          <ControleSecundario state={estadoGrafico} cor="blue" onChange={(p) => setEstadoGrafico((s) => ({ ...s, ...p }))} />
+        </div>
+      )}
+
       {/* Conteúdo */}
       {loading ? (
         <div className="h-40 bg-dark-hover rounded-xl animate-pulse" />
@@ -181,12 +222,27 @@ export function FornecedorHistorico({ fornecedor, entradas, loading, onFechar }:
             </div>
           ))}
         </div>
+      ) : serie.length === 0 ? (
+        <div className="py-10 flex flex-col items-center gap-2 text-gray-500 text-center">
+          <IconChartLine size={28} className="text-gray-600" />
+          <p className="text-sm">Nenhuma compra no período selecionado.</p>
+        </div>
       ) : (
         <div className="bg-dark-bg border border-dark-border rounded-xl p-4">
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={serie} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-              <XAxis dataKey="data" stroke="#6b7280" fontSize={11} tickLine={false} />
+              <XAxis
+                dataKey="idx"
+                type="number"
+                domain={[0, Math.max(0, serie.length - 1)]}
+                ticks={serie.map((s) => s.idx)}
+                tickFormatter={(v) => serie[Number(v)]?.data ?? ''}
+                stroke="#6b7280"
+                fontSize={11}
+                tickLine={false}
+                allowDecimals={false}
+              />
               <YAxis
                 stroke="#6b7280"
                 fontSize={11}
@@ -195,7 +251,7 @@ export function FornecedorHistorico({ fornecedor, entradas, loading, onFechar }:
                 tickFormatter={(v) => formatarMoeda(Number(v))}
               />
               <Tooltip content={<TooltipGrafico />} />
-              <Line type="monotone" dataKey="preco" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
+              <Line type="linear" dataKey="preco" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
