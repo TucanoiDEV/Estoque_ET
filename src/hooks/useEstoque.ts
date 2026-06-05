@@ -98,7 +98,7 @@ export function useEstoque() {
       .entradas()
       .select(`
         *,
-        produto:produto_id (id, codigo, nome),
+        produto:produto_id (id, codigo, nome, unidade),
         fornecedor:fornecedor_id (id, nome),
         usuario:usuario_id (id, nome, email)
       `)

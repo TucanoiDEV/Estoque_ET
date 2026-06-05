@@ -5,58 +5,70 @@ import {
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { db } from '../../../services/supabase'
 import { formatarMoeda } from '../../../utils/numero'
 import { formatarData } from '../../../utils/data'
-import type { Fornecedor } from '../../../types'
+import type { Entrada, Fornecedor } from '../../../types'
 
 interface Compra {
   data: string
   preco: number
+  quantidade: number
+  unidade: string
   produtoId: string
   produto: string
 }
 
-interface EntradaRaw {
-  total: number | null
-  custo_unitario: number | null
-  quantidade: number
-  data_recebimento: string
-  produto: { id: string; nome: string } | null
+type Modo = 'lista' | 'grafico'
+
+// "4 un", "2,5 kg" — quantidade com a unidade de medida do produto.
+function formatarQuantidade(quantidade: number, unidade: string): string {
+  const num = Number.isInteger(quantidade) ? quantidade.toString() : quantidade.toLocaleString('pt-BR')
+  return `${num} ${unidade}`.trim()
 }
 
-type Modo = 'lista' | 'grafico'
+// Tooltip do gráfico: mostra data, preço unitário e a quantidade comprada.
+interface TooltipPayload {
+  payload: { data: string; preco: number; quantidade: number; unidade: string }
+}
+function TooltipGrafico({ active, payload }: { active?: boolean; payload?: TooltipPayload[] }) {
+  if (!active || !payload?.length) return null
+  const { data, preco, quantidade, unidade } = payload[0].payload
+  return (
+    <div className="bg-dark-card border border-dark-border rounded-lg px-3 py-2 text-xs space-y-0.5">
+      <p className="text-gray-400">{data}</p>
+      <p className="text-brand-blue">Preço: {formatarMoeda(preco)}</p>
+      <p className="text-white">Quantidade: {formatarQuantidade(quantidade, unidade)}</p>
+    </div>
+  )
+}
 
 interface Props {
   fornecedor: Fornecedor
+  entradas: Entrada[]
+  loading: boolean
   onFechar: () => void
 }
 
-export function FornecedorHistorico({ fornecedor, onFechar }: Props) {
-  const [compras, setCompras] = useState<Compra[]>([])
-  const [loading, setLoading] = useState(true)
+export function FornecedorHistorico({ fornecedor, entradas, loading, onFechar }: Props) {
   const [modo, setModo] = useState<Modo>('lista')
   const [produtoFiltro, setProdutoFiltro] = useState<string>('') // '' = todos
 
-  useEffect(() => {
-    async function carregar() {
-      setLoading(true)
-      const { data } = await db.entradas()
-        .select('total, custo_unitario, quantidade, data_recebimento, produto:produtos(id, nome)')
-        .eq('fornecedor_id', fornecedor.id)
-        .order('data_recebimento', { ascending: false })
-
-      const entradas = (data as unknown as EntradaRaw[]) ?? []
-      setCompras(entradas.map((e) => ({
+  // Histórico derivado do estado central (useEstoque): filtra as entradas deste
+  // fornecedor. Fonte única de verdade — acompanha o realtime e o histórico geral.
+  const compras = useMemo<Compra[]>(
+    () => entradas
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((e) => (e.fornecedor as any)?.id === fornecedor.id || e.fornecedor_id === fornecedor.id)
+      .map((e) => ({
         data: e.data_recebimento,
         preco: e.custo_unitario ?? (e.quantidade ? (e.total ?? 0) / e.quantidade : 0),
+        quantidade: e.quantidade,
+        unidade: e.produto?.unidade ?? 'un',
         produtoId: e.produto?.id ?? '',
         produto: e.produto?.nome ?? '—',
-      })))
-      setLoading(false)
-    }
-    carregar()
-  }, [fornecedor.id])
+      })),
+    [entradas, fornecedor.id],
+  )
 
   // Produtos distintos presentes no histórico (para o filtro)
   const produtos = useMemo(() => {
@@ -79,7 +91,9 @@ export function FornecedorHistorico({ fornecedor, onFechar }: Props) {
 
   // Série para o gráfico: ordem cronológica (mais antiga → mais recente)
   const serie = useMemo(
-    () => [...comprasFiltradas].sort((a, b) => a.data.localeCompare(b.data)).map((c) => ({ data: formatarData(c.data, 'dd/MM'), preco: c.preco })),
+    () => [...comprasFiltradas]
+      .sort((a, b) => a.data.localeCompare(b.data))
+      .map((c) => ({ data: formatarData(c.data, 'dd/MM'), preco: c.preco, quantidade: c.quantidade, unidade: c.unidade })),
     [comprasFiltradas],
   )
 
@@ -161,7 +175,7 @@ export function FornecedorHistorico({ fornecedor, onFechar }: Props) {
             <div key={i} className="flex items-center justify-between gap-3 px-4 py-2.5">
               <div className="min-w-0">
                 <p className="text-sm text-white truncate">{c.produto}</p>
-                <p className="text-xs text-gray-500">{formatarData(c.data)}</p>
+                <p className="text-xs text-gray-500">{formatarData(c.data)} · {formatarQuantidade(c.quantidade, c.unidade)}</p>
               </div>
               <span className="text-sm font-semibold text-brand-green whitespace-nowrap">{formatarMoeda(c.preco)}</span>
             </div>
@@ -180,11 +194,7 @@ export function FornecedorHistorico({ fornecedor, onFechar }: Props) {
                 width={60}
                 tickFormatter={(v) => formatarMoeda(Number(v))}
               />
-              <Tooltip
-                contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
-                labelStyle={{ color: '#9ca3af' }}
-                formatter={(v) => [formatarMoeda(Number(v)), 'Preço']}
-              />
+              <Tooltip content={<TooltipGrafico />} />
               <Line type="monotone" dataKey="preco" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
             </LineChart>
           </ResponsiveContainer>

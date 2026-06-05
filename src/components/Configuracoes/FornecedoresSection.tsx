@@ -8,12 +8,17 @@ import { useToast } from '../shared/Toast'
 import { FornecedorDrawer } from './fornecedor/FornecedorDrawer'
 import { FornecedorResumoModal } from './fornecedor/FornecedorResumoModal'
 import { FornecedorHistorico } from './fornecedor/FornecedorHistorico'
-import type { Fornecedor } from '../../types'
+import type { Entrada, Fornecedor } from '../../types'
 
 type FiltroStatus = 'todos' | 'ativos' | 'inativos'
 const POR_PAGINA = 8
 
-export function FornecedoresSection() {
+interface Props {
+  entradas: Entrada[]
+  loadingEntradas: boolean
+}
+
+export function FornecedoresSection({ entradas, loadingEntradas }: Props) {
   const { mostrarToast } = useToast()
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([])
   const [loading, setLoading] = useState(true)
@@ -238,6 +243,8 @@ export function FornecedoresSection() {
         <FornecedorHistorico
           key={historico.id}
           fornecedor={historico}
+          entradas={entradas}
+          loading={loadingEntradas}
           onFechar={() => setHistorico(null)}
         />
       )}

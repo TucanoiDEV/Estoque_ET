@@ -197,7 +197,7 @@ function AppLayout() {
                   <p className="text-sm text-gray-500 mt-0.5">Gestão completa dos fornecedores do estoque</p>
                 </div>
                 <div className="bg-dark-card border border-dark-border rounded-xl p-6">
-                  <FornecedoresSection />
+                  <FornecedoresSection entradas={entradas} loadingEntradas={loading} />
                 </div>
               </div>
             )}
