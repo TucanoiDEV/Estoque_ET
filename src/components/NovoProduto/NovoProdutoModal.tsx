@@ -4,7 +4,7 @@ import { IconX, IconLoader2, IconPackages } from '@tabler/icons-react'
 import { db } from '../../services/supabase'
 import { useToast } from '../shared/Toast'
 import { useAuth } from '../../hooks/useAuth'
-import { sanitizarNumero, paraNumero } from '../../utils/numero'
+import { sanitizarNumero, paraNumero, formatarMoeda } from '../../utils/numero'
 import { useLista } from '../../hooks/useLista'
 import { useCategorias } from '../../hooks/useCategorias'
 import { SelectComAdicionar, type Opcao } from '../shared/SelectComAdicionar'
@@ -25,6 +25,8 @@ interface FormProduto {
   cor: string
   fornecedor_id: string
   custo_unitario: string
+  venda_valor: string
+  venda_percentual: string
   estoque_minimo: string
   quantidade_inicial: string
   local_armazenamento: string
@@ -50,6 +52,8 @@ const FORM_INICIAL: FormProduto = {
   cor: '',
   fornecedor_id: '',
   custo_unitario: '',
+  venda_valor: '',
+  venda_percentual: '',
   estoque_minimo: '',
   quantidade_inicial: '',
   local_armazenamento: 'Estoque A',
@@ -59,6 +63,8 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
   const { mostrarToast } = useToast()
   const { usuario } = useAuth()
   const [form, setForm] = useState<FormProduto>(FORM_INICIAL)
+  // Como o usuário informa a venda: valor direto (R$) ou margem (%) sobre o custo
+  const [modoVenda, setModoVenda] = useState<'valor' | 'percentual'>('valor')
   const [salvando, setSalvando] = useState(false)
   const [erros, setErros] = useState<Partial<Record<keyof FormProduto, string>>>({})
 
@@ -105,6 +111,16 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
   // Rótulo do custo conforme a unidade selecionada (ex.: "Custo por metro" / R$/m)
   const custoInfo = infoUnidade(form.unidade)
 
+  // Preço de venda: só é permitido depois que o custo for informado. Pode ser
+  // digitado como valor (R$) ou como margem (%) sobre o custo.
+  const custoNum = paraNumero(form.custo_unitario)
+  const custoPreenchido = form.custo_unitario.trim() !== '' && custoNum > 0
+  const precoVenda = !custoPreenchido
+    ? 0
+    : modoVenda === 'percentual'
+      ? custoNum * (1 + paraNumero(form.venda_percentual) / 100)
+      : paraNumero(form.venda_valor)
+
   function set(campo: keyof FormProduto, valor: string) {
     setForm((prev) => ({ ...prev, [campo]: valor }))
     if (erros[campo]) setErros((prev) => ({ ...prev, [campo]: undefined }))
@@ -115,6 +131,8 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
     if (!form.nome.trim()) novosErros.nome = 'Nome é obrigatório'
     if (!form.unidade) novosErros.unidade = 'Selecione uma unidade'
     if (paraNumero(form.custo_unitario) < 0) novosErros.custo_unitario = 'Custo não pode ser negativo'
+    if (modoVenda === 'valor' && paraNumero(form.venda_valor) < 0) novosErros.venda_valor = 'Valor não pode ser negativo'
+    if (modoVenda === 'percentual' && paraNumero(form.venda_percentual) < 0) novosErros.venda_percentual = 'Percentual não pode ser negativo'
     if (paraNumero(form.estoque_minimo) < 0) novosErros.estoque_minimo = 'Valor não pode ser negativo'
     if (paraNumero(form.quantidade_inicial) < 0) novosErros.quantidade_inicial = 'Valor não pode ser negativo'
     setErros(novosErros)
@@ -126,23 +144,26 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
     if (!validar()) return
     setSalvando(true)
     try {
-      const { data: produto, error: erroProduto } = await db
-        .produtos()
-        .insert({
-          codigo: codigoGerado,
-          nome: form.nome.trim(),
-          categoria: form.categoria.trim() || null,
-          unidade: form.unidade,
-          cor: form.cor.trim() || null,
-          fornecedor_id: form.fornecedor_id || null,
-          custo_unitario: paraNumero(form.custo_unitario) || null,
-          estoque_minimo: paraNumero(form.estoque_minimo),
-          local_armazenamento: form.local_armazenamento || null,
-        })
-        .select('id')
-        .single()
+      const dadosBase = {
+        codigo: codigoGerado,
+        nome: form.nome.trim(),
+        categoria: form.categoria.trim() || null,
+        unidade: form.unidade,
+        cor: form.cor.trim() || null,
+        fornecedor_id: form.fornecedor_id || null,
+        custo_unitario: paraNumero(form.custo_unitario) || null,
+        estoque_minimo: paraNumero(form.estoque_minimo),
+        local_armazenamento: form.local_armazenamento || null,
+      }
+      const precoVendaFinal = custoPreenchido && precoVenda > 0 ? Number(precoVenda.toFixed(2)) : null
 
-      if (erroProduto) throw new Error(erroProduto.message)
+      // Tenta com preco_venda; se a coluna ainda não existir, grava sem ela.
+      let resp = await db.produtos().insert({ ...dadosBase, preco_venda: precoVendaFinal }).select('id').single()
+      if (resp.error && /preco_venda|column/i.test(resp.error.message)) {
+        resp = await db.produtos().insert(dadosBase).select('id').single()
+      }
+      const produto = resp.data
+      if (resp.error || !produto) throw new Error(resp.error?.message ?? 'Falha ao cadastrar o produto')
 
       const quantidadeInicial = paraNumero(form.quantidade_inicial)
 
@@ -321,6 +342,59 @@ export function NovoProdutoModal({ onFechar, onSalvo }: Props) {
               />
               {erros.estoque_minimo && <p className="text-xs text-brand-red mt-1">{erros.estoque_minimo}</p>}
             </div>
+          </div>
+
+          {/* Preço de venda — só habilita depois que o custo for informado */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-medium text-gray-400">
+                Venda por {custoInfo.nome}
+              </label>
+              <div className="flex items-center gap-0.5 bg-dark-hover border border-dark-border rounded-md p-0.5">
+                {([['valor', 'R$'], ['percentual', '% sobre custo']] as const).map(([m, rotulo]) => (
+                  <button
+                    key={m}
+                    type="button"
+                    disabled={!custoPreenchido}
+                    onClick={() => setModoVenda(m)}
+                    className={`px-2 py-0.5 text-[11px] rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                      modoVenda === m ? 'bg-brand-blue text-white' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {rotulo}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                inputMode="decimal"
+                disabled={!custoPreenchido}
+                value={modoVenda === 'valor' ? form.venda_valor : form.venda_percentual}
+                onChange={(e) => set(modoVenda === 'valor' ? 'venda_valor' : 'venda_percentual', sanitizarNumero(e.target.value, true))}
+                placeholder={modoVenda === 'valor' ? '0,00' : '0'}
+                className={`w-full bg-dark-bg border rounded-lg pl-3 pr-16 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-blue transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  erros.venda_valor || erros.venda_percentual ? 'border-brand-red' : 'border-dark-border'
+                }`}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 pointer-events-none">
+                {modoVenda === 'valor' ? `R$/${custoInfo.abrev}` : '%'}
+              </span>
+            </div>
+            {(erros.venda_valor || erros.venda_percentual) ? (
+              <p className="text-xs text-brand-red mt-1">{erros.venda_valor || erros.venda_percentual}</p>
+            ) : !custoPreenchido ? (
+              <p className="text-[11px] text-gray-600 mt-1">Informe o custo acima para definir a venda.</p>
+            ) : modoVenda === 'percentual' ? (
+              <p className="text-[11px] text-gray-500 mt-1">
+                Venda: <span className="text-brand-green font-semibold">{formatarMoeda(precoVenda)}</span> /{custoInfo.abrev}
+              </p>
+            ) : precoVenda > 0 && precoVenda >= custoNum ? (
+              <p className="text-[11px] text-gray-500 mt-1">
+                Margem: <span className="text-brand-green font-semibold">+{(((precoVenda - custoNum) / custoNum) * 100).toFixed(1).replace('.', ',')}%</span> sobre o custo
+              </p>
+            ) : null}
           </div>
 
           {/* Quantidade inicial */}

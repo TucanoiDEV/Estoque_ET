@@ -16,17 +16,17 @@ async function abrirNovoProduto(page: Page) {
 test('Novo produto: rótulo do custo muda conforme a unidade', async ({ page }) => {
   await abrirNovoProduto(page)
 
-  // Padrão UN
+  // Padrão UN (o sufixo R$/un aparece no custo e na venda → .first() = o do custo)
   await expect(page.getByText('Custo por unidade')).toBeVisible()
-  await expect(page.getByText('R$/un')).toBeVisible()
+  await expect(page.getByText('R$/un').first()).toBeVisible()
 
   // Troca para Metro (combo de unidade mostra "Unidade (UN)")
   await escolherNoCombo(page, 'Unidade (UN)', 'Metro', 'Metro (M)')
   await expect(page.getByText('Custo por metro')).toBeVisible()
-  await expect(page.getByText('R$/m', { exact: true })).toBeVisible()
+  await expect(page.getByText('R$/m', { exact: true }).first()).toBeVisible()
 
   // Troca para Quilograma (agora o gatilho mostra "Metro (M)")
   await escolherNoCombo(page, 'Metro (M)', 'Quilograma', 'Quilograma (KG)')
   await expect(page.getByText('Custo por quilograma')).toBeVisible()
-  await expect(page.getByText('R$/kg')).toBeVisible()
+  await expect(page.getByText('R$/kg').first()).toBeVisible()
 })

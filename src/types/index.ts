@@ -23,6 +23,7 @@ export interface Produto {
   unidade: string
   cor: string | null
   custo_unitario: number | null
+  preco_venda?: number | null // preço de venda por unidade (opcional)
   desconto: number | null // percentual de desconto (0–100)
   desconto_inicio: string | null // data de início da vigência (opcional)
   desconto_fim: string | null // data de fim da vigência (opcional)
