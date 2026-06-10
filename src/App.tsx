@@ -33,6 +33,7 @@ import { DescontosSection } from './components/Configuracoes/DescontosSection'
 import { NotificacoesSection } from './components/Configuracoes/NotificacoesSection'
 import { IASection } from './components/Configuracoes/IASection'
 import { BackupSection } from './components/Configuracoes/BackupSection'
+import { DesenvolvedorSection } from './components/Configuracoes/DesenvolvedorSection'
 
 // Modais
 import { NovaEntradaModal } from './components/NovaEntrada/NovaEntradaModal'
@@ -56,19 +57,22 @@ type SubAbaConfig =
   | 'notificacoes'
   | 'ia'
   | 'backup'
+  | 'desenvolvedor'
 
-const subAbasConfig: { id: SubAbaConfig; label: string }[] = [
+// `soDev: true` → só aparece para o cargo developer
+const subAbasConfig: { id: SubAbaConfig; label: string; soDev?: boolean }[] = [
   { id: 'usuarios', label: 'Usuários' },
   { id: 'estoque', label: 'Estoque' },
   { id: 'descontos', label: 'Descontos' },
   { id: 'notificacoes', label: 'Notificações' },
   { id: 'ia', label: 'Assistente IA' },
   { id: 'backup', label: 'Backup' },
+  { id: 'desenvolvedor', label: 'Desenvolvedor', soDev: true },
 ]
 
 // ─── Layout principal (app autenticado) ──────────────────────────────────────
 function AppLayout() {
-  const { isAdmin } = usePermissions()
+  const { isAdmin, canAccessDev } = usePermissions()
   const [abaAtiva, setAbaAtiva] = useState<Aba>('dashboard')
   const [subAbaDash, setSubAbaDash] = useState<SubAbaDashboard>('graficos')
   const [subAbaConf, setSubAbaConf] = useState<SubAbaConfig>('usuarios')
@@ -213,7 +217,7 @@ function AppLayout() {
                 <div className="flex gap-6">
                   {/* Menu lateral de config */}
                   <nav className="w-44 shrink-0 space-y-1">
-                    {subAbasConfig.map((aba) => (
+                    {subAbasConfig.filter((aba) => !aba.soDev || canAccessDev()).map((aba) => (
                       <button
                         key={aba.id}
                         onClick={() => setSubAbaConf(aba.id)}
@@ -236,6 +240,7 @@ function AppLayout() {
                     {subAbaConf === 'notificacoes' && <NotificacoesSection />}
                     {subAbaConf === 'ia' && <IASection />}
                     {subAbaConf === 'backup' && <BackupSection />}
+                    {subAbaConf === 'desenvolvedor' && canAccessDev() && <DesenvolvedorSection />}
                   </div>
                 </div>
               </div>

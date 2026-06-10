@@ -36,6 +36,7 @@ export function Header({ temaEscuro, onToggleTema, sincronizando, onNovaEntrada,
   }, [menuAberto])
 
   const badgeCargo: Record<string, string> = {
+    developer: 'bg-brand-green/20 text-brand-green',
     admin: 'bg-brand-purple/20 text-brand-purple',
     operador: 'bg-brand-blue/20 text-brand-blue',
     visualizador: 'bg-gray-500/20 text-gray-400',

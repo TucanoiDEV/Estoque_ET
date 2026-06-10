@@ -1,6 +1,6 @@
 // Tipos globais do Armazém Machado
 
-export type Cargo = 'admin' | 'operador' | 'visualizador'
+export type Cargo = 'admin' | 'operador' | 'visualizador' | 'developer'
 
 export type StatusEstoque = 'normal' | 'baixo' | 'critico'
 
@@ -176,7 +176,7 @@ export interface DadoGrafico {
   mes: string
   quantidade: number
   total: number
-  top?: { nome: string; quantidade: number }[] // top produtos do período (para o tooltip)
+  top?: { nome: string; quantidade: number; unidade?: string }[] // top produtos do período (para o tooltip)
 }
 
 export interface DadoProdutoMovimentado {

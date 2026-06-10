@@ -11,10 +11,11 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import type { DadoGrafico, DadoProdutoMovimentado } from '../../types'
+import { infoUnidade } from '../../utils/unidade'
 
 interface Props {
-  entradas: { data_recebimento: string; quantidade: number; produto?: { nome: string } | null }[]
-  saidas: { data_saida: string; quantidade: number; produto?: { nome: string } | null }[]
+  entradas: { data_recebimento: string; quantidade: number; produto?: { nome: string; unidade?: string } | null }[]
+  saidas: { data_saida: string; quantidade: number; produto?: { nome: string; unidade?: string } | null }[]
   topProdutos: DadoProdutoMovimentado[]
   topVendidos: DadoProdutoMovimentado[]
   loading: boolean
@@ -27,19 +28,24 @@ interface RegistroData {
   data: string // 'YYYY-MM-DD'
   quantidade: number
   produto: string
+  unidade: string
 }
 
 export interface TopProduto {
   nome: string
   quantidade: number
+  unidade: string
 }
 
 // Top N produtos (por quantidade) de um conjunto de registros do mesmo período.
 function topProdutosDe(registros: RegistroData[], n = 5): TopProduto[] {
-  const mapa = new Map<string, number>()
-  registros.forEach((r) => mapa.set(r.produto, (mapa.get(r.produto) ?? 0) + r.quantidade))
+  const mapa = new Map<string, { quantidade: number; unidade: string }>()
+  registros.forEach((r) => {
+    const atual = mapa.get(r.produto)
+    mapa.set(r.produto, { quantidade: (atual?.quantidade ?? 0) + r.quantidade, unidade: r.unidade || atual?.unidade || '' })
+  })
   return [...mapa.entries()]
-    .map(([nome, quantidade]) => ({ nome, quantidade }))
+    .map(([nome, v]) => ({ nome, quantidade: v.quantidade, unidade: v.unidade }))
     .sort((a, b) => b.quantidade - a.quantidade)
     .slice(0, n)
 }
@@ -305,7 +311,10 @@ function TooltipPersonalizado({ active, payload, label }: any) {
             {top.map((p, i) => (
               <li key={p.nome} className="flex items-center justify-between gap-3 text-xs">
                 <span className="text-gray-300 truncate">{i + 1}. {p.nome}</span>
-                <span className="text-white font-semibold shrink-0">{p.quantidade.toLocaleString('pt-BR')}</span>
+                <span className="text-white font-semibold shrink-0">
+                  {p.quantidade.toLocaleString('pt-BR')}
+                  {p.unidade && <span className="text-gray-400 font-normal"> {infoUnidade(p.unidade).abrev}</span>}
+                </span>
               </li>
             ))}
           </ul>
@@ -534,8 +543,8 @@ export function GraficosTab({ entradas, saidas, topProdutos, topVendidos, loadin
   }
 
   // Normaliza para a data da movimentação (entrada = recebimento, saída = saída)
-  const dadosEntradas = calcularDados(entradas.map((e) => ({ data: e.data_recebimento, quantidade: e.quantidade, produto: e.produto?.nome ?? 'Desconhecido' })), stateEntradas)
-  const dadosSaidas = calcularDados(saidas.map((s) => ({ data: s.data_saida, quantidade: s.quantidade, produto: s.produto?.nome ?? 'Desconhecido' })), stateSaidas)
+  const dadosEntradas = calcularDados(entradas.map((e) => ({ data: e.data_recebimento, quantidade: e.quantidade, produto: e.produto?.nome ?? 'Desconhecido', unidade: e.produto?.unidade ?? '' })), stateEntradas)
+  const dadosSaidas = calcularDados(saidas.map((s) => ({ data: s.data_saida, quantidade: s.quantidade, produto: s.produto?.nome ?? 'Desconhecido', unidade: s.produto?.unidade ?? '' })), stateSaidas)
   const barrasEntradas = usarBarrasParaModo(stateEntradas.modo, stateEntradas.inicio, stateEntradas.fim)
   const barrasSaidas = usarBarrasParaModo(stateSaidas.modo, stateSaidas.inicio, stateSaidas.fim)
   const semEntradas = dadosEntradas.every((d) => d.quantidade === 0)

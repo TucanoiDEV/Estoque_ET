@@ -7,6 +7,7 @@ import { useAuth } from '../../hooks/useAuth'
 import type { Usuario, Cargo } from '../../types'
 
 const badgeCargo: Record<Cargo, string> = {
+  developer: 'bg-brand-green/20 text-brand-green',
   admin: 'bg-brand-purple/20 text-brand-purple',
   operador: 'bg-brand-blue/20 text-brand-blue',
   visualizador: 'bg-gray-500/20 text-gray-400',
@@ -82,6 +83,7 @@ export function UsuariosSection() {
               onChange={(e) => setNovoCargo(e.target.value as Cargo)}
               className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-blue mb-5"
             >
+              <option value="developer">Developer</option>
               <option value="admin">Admin</option>
               <option value="operador">Operador</option>
               <option value="visualizador">Visualizador</option>
